@@ -1,0 +1,4 @@
+# Local Open WebUI / Ollama persistent volumes (created by docker-compose.yml).
+# These hold local models, chats, and uploaded documents — never commit them.
+/ollama/
+/open-webui/

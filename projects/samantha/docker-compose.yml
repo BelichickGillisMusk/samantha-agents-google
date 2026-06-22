@@ -1,0 +1,48 @@
+# Local-only Samantha harness: Ollama (local model) + Open WebUI front-end.
+#
+# This is a DEVELOPMENT / OFFLINE-PROTOTYPING stack, NOT a production deployment.
+# Production Samantha runs on Cloud Run + Vertex AI / Gemini — see ./BUILD.md.
+# Full walkthrough: ./LOCAL_DEV.md
+#
+# Usage:
+#   cp ../../.env.example ../../.env   # then set WEBUI_SECRET_KEY
+#   docker compose --env-file ../../.env up -d
+#
+# Note: the local backbone is an open-weight model (Llama 3 / Mistral / etc.),
+# so its behavior will NOT match production Gemini. Use it to iterate on the
+# shared persona (./persona/system_prompt.md) and RAG docs, not to validate
+# production output.
+
+# Image tags are pinned for reproducibility. To bump, change the tag here and
+# test `docker compose up`. For a fully immutable harness, replace a tag with a
+# digest, e.g. ollama/ollama@sha256:... (find it via `docker buildx imagetools
+# inspect ollama/ollama:0.30.5`). `:latest`/`:main` are intentionally avoided so
+# upstream changes don't silently break the stack.
+services:
+  ollama:
+    image: ollama/ollama:0.30.5
+    container_name: ollama
+    tty: true
+    restart: unless-stopped
+    volumes:
+      - ./ollama:/root/.ollama
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:v0.6.40
+    container_name: open-webui
+    depends_on:
+      - ollama
+    ports:
+      # Bound to loopback only — a local dev harness must not be reachable from
+      # the LAN (it would expose the UI and any uploaded docs).
+      - "127.0.0.1:3000:8080"
+    environment:
+      - 'OLLAMA_BASE_URL=http://ollama:11434'
+      # Pulled from .env — never hardcode the key here. Generate one with:
+      #   openssl rand -hex 32
+      - 'WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:?set WEBUI_SECRET_KEY in your .env}'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./open-webui:/app/backend/data
+    restart: unless-stopped
