@@ -100,6 +100,22 @@ docker compose down -v && rm -rf ollama open-webui   # full reset
 
 ---
 
+## Appendix: a friendly hostname (optional)
+
+To "log into the office" at a memorable address instead of `localhost:3000`, map a
+hostname to your loopback address in your hosts file:
+
+```bash
+# Linux/macOS: /etc/hosts   (Windows: C:\Windows\System32\drivers\etc\hosts)
+echo "127.0.0.1  office.local" | sudo tee -a /etc/hosts
+```
+
+Then browse to <http://office.local:3000>. This is a purely local convenience and
+has no effect on the GCP deployment. To serve it on the bare `office.local`
+(no `:3000`), front Open WebUI with a reverse proxy listening on port 80.
+
+---
+
 ## Appendix: unified front-end (optional)
 
 If you specifically want the **production Gemini model** behind this same Open
