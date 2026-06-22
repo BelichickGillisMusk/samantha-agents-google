@@ -1,0 +1,42 @@
+# Local-only Samantha harness: Ollama (local model) + Open WebUI front-end.
+#
+# This is a DEVELOPMENT / OFFLINE-PROTOTYPING stack, NOT a production deployment.
+# Production Samantha runs on Cloud Run + Vertex AI / Gemini — see ./BUILD.md.
+# Full walkthrough: ./LOCAL_DEV.md
+#
+# Usage:
+#   cp ../../.env.example ../../.env   # then set WEBUI_SECRET_KEY
+#   docker compose --env-file ../../.env up -d
+#
+# Note: the local backbone is an open-weight model (Llama 3 / Mistral / etc.),
+# so its behavior will NOT match production Gemini. Use it to iterate on the
+# shared persona (./persona/system_prompt.md) and RAG docs, not to validate
+# production output.
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    pull_policy: always
+    tty: true
+    restart: unless-stopped
+    volumes:
+      - ./ollama:/root/.ollama
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    depends_on:
+      - ollama
+    ports:
+      - "3000:8080"
+    environment:
+      - 'OLLAMA_BASE_URL=http://ollama:11434'
+      # Pulled from .env — never hardcode the key here. Generate one with:
+      #   openssl rand -hex 32
+      - 'WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:?set WEBUI_SECRET_KEY in your .env}'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./open-webui:/app/backend/data
+    restart: unless-stopped

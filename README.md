@@ -10,7 +10,7 @@ All information here is intended for editing and building these projects from **
 
 | Agent | GCP Project | Status | Docs |
 |-------|------------|--------|------|
-| Samantha | `samantha-agent` | Active | [Build Info](projects/samantha/BUILD.md) |
+| Samantha | `samantha-agent` | Active | [Build Info](projects/samantha/BUILD.md) · [Local Dev](projects/samantha/LOCAL_DEV.md) |
 | Nora | `nora-agent` | Active | [Build Info](projects/nora/BUILD.md) |
 | Sloane | `sloane-agent` | Active | [Build Info](projects/sloane/BUILD.md) |
 
@@ -42,7 +42,10 @@ samantha-agents-google/
 ├── .env.example         ← Template for environment variables
 └── projects/
     ├── samantha/
-    │   └── BUILD.md     ← Samantha agent build & deploy info
+    │   ├── BUILD.md            ← Samantha agent build & deploy info (GCP)
+    │   ├── LOCAL_DEV.md        ← Local Ollama + Open WebUI dev harness
+    │   ├── docker-compose.yml  ← Local dev stack (not production)
+    │   └── persona/            ← Shared system prompt + RAG docs (both backends)
     ├── nora/
     │   └── BUILD.md     ← Nora agent build & deploy info
     └── sloane/
