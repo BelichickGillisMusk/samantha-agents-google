@@ -1,15 +1,16 @@
 <!--
   SINGLE SOURCE OF TRUTH for Samantha's persona.
 
-  Both backends consume this file:
-    - Production (GCP):   the Cloud Run service loads this as the system prompt
-                          for Vertex AI / Gemini. See ../BUILD.md.
-    - Local dev (Ollama): paste this into the Open WebUI Modelfile system prompt.
+  Consumers must send ONLY the text BETWEEN the BEGIN/END SYSTEM PROMPT markers
+  below to the model. Everything else in this file — this comment and the marker
+  lines themselves — is documentation and must NOT be sent.
+
+  Both backends consume that block:
+    - Production (GCP):   used as the system prompt for Vertex AI / Gemini.
+    - Local dev (Ollama): pasted into the Open WebUI Modelfile system prompt.
                           See ../LOCAL_DEV.md.
 
   Keep behavioral changes here so the cloud and local Samantha stay in sync.
-  The lines below the marker are the literal prompt; everything above it
-  (this comment) is documentation and must not be sent to the model.
 -->
 
 <!-- BEGIN SYSTEM PROMPT -->

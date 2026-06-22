@@ -13,23 +13,29 @@
 # shared persona (./persona/system_prompt.md) and RAG docs, not to validate
 # production output.
 
+# Image tags are pinned for reproducibility. To bump, change the tag here and
+# test `docker compose up`. For a fully immutable harness, replace a tag with a
+# digest, e.g. ollama/ollama@sha256:... (find it via `docker buildx imagetools
+# inspect ollama/ollama:0.30.5`). `:latest`/`:main` are intentionally avoided so
+# upstream changes don't silently break the stack.
 services:
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.30.5
     container_name: ollama
-    pull_policy: always
     tty: true
     restart: unless-stopped
     volumes:
       - ./ollama:/root/.ollama
 
   open-webui:
-    image: ghcr.io/open-webui/open-webui:main
+    image: ghcr.io/open-webui/open-webui:v0.6.40
     container_name: open-webui
     depends_on:
       - ollama
     ports:
-      - "3000:8080"
+      # Bound to loopback only — a local dev harness must not be reachable from
+      # the LAN (it would expose the UI and any uploaded docs).
+      - "127.0.0.1:3000:8080"
     environment:
       - 'OLLAMA_BASE_URL=http://ollama:11434'
       # Pulled from .env — never hardcode the key here. Generate one with:

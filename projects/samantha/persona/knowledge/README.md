@@ -6,8 +6,10 @@ directory (handbooks, project histories, redacted client lists, FAQs, etc.).
 This is the **single source of truth** for Samantha's retrieval knowledge, used
 by both backends:
 
-- **Production (GCP):** indexed into Vertex AI Search / the agent's vector store.
-  See [`../../BUILD.md`](../../BUILD.md).
+- **Production (GCP):** intended to be indexed into Vertex AI Search / the
+  agent's vector store. (The production ingestion pipeline is not yet documented
+  in [`../../BUILD.md`](../../BUILD.md) — see that file for the rest of the
+  deploy flow.)
 - **Local dev (Ollama + Open WebUI):** uploaded into Open WebUI **Documents** and
   tagged in chat. See [`../../LOCAL_DEV.md`](../../LOCAL_DEV.md).
 

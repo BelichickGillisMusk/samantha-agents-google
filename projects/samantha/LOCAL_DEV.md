@@ -16,7 +16,7 @@ Samantha don't drift apart:
 | Shared artifact | Production (GCP) | Local (this stack) |
 |---|---|---|
 | [`persona/system_prompt.md`](persona/system_prompt.md) | Loaded as the system prompt for Gemini | Pasted into the Open WebUI Modelfile system prompt |
-| [`persona/knowledge/`](persona/knowledge/) | Indexed into Vertex AI Search / vector store | Uploaded into Open WebUI **Documents** for RAG |
+| [`persona/knowledge/`](persona/knowledge/) | Intended for Vertex AI Search / vector store (ingestion pipeline not yet documented) | Uploaded into Open WebUI **Documents** for RAG |
 
 Edit the persona and knowledge **once**, in those shared files, and apply them to
 both backends. Everything else differs by design:
@@ -55,9 +55,15 @@ hardcoded, consistent with this repo's "never commit secrets" rule.
 
 ```bash
 cp ../../.env.example ../../.env          # if you don't have a .env yet
-# Generate a key and add it to .env:
-echo "WEBUI_SECRET_KEY=$(openssl rand -hex 32)" >> ../../.env
+
+# Generate a key:
+openssl rand -hex 32
 ```
+
+Then open `../../.env` and **replace** the empty `WEBUI_SECRET_KEY=` line with the
+generated value. Edit the existing line in place — don't append a second
+`WEBUI_SECRET_KEY=` entry, since many dotenv loaders read the *first* occurrence
+and would ignore your new value.
 
 ## 2. Start the stack
 
