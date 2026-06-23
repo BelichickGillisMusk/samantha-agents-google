@@ -13,6 +13,11 @@ All information here is intended for editing and building these projects from **
 | Samantha | `samantha-agent` | Active | [Build Info](projects/samantha/BUILD.md) · [Local Dev](projects/samantha/LOCAL_DEV.md) |
 | Nora | `nora-agent` | Active | [Build Info](projects/nora/BUILD.md) |
 | Sloane | `sloane-agent` | Active | [Build Info](projects/sloane/BUILD.md) |
+| Process-Optimization | `process-optimization-agent` | Active | [Build Info](projects/process-optimization/BUILD.md) |
+
+> **Deploying a new agent?** Use the [`/process-optimization`](.claude/commands/process-optimization.md)
+> Claude Code agent — it scaffolds, configures, and submits a new agent following the
+> conventions above. See [`.claude/agents/process-optimization.md`](.claude/agents/process-optimization.md).
 
 ---
 
@@ -40,6 +45,11 @@ samantha-agents-google/
 ├── README.md            ← This file
 ├── SETUP.md             ← One-time tooling & auth setup guide
 ├── .env.example         ← Template for environment variables
+├── .claude/
+│   ├── agents/
+│   │   └── process-optimization.md   ← Agent that deploys new agents
+│   └── commands/
+│       └── process-optimization.md   ← /process-optimization slash command
 └── projects/
     ├── samantha/
     │   ├── BUILD.md            ← Samantha agent build & deploy info (GCP)
@@ -48,6 +58,9 @@ samantha-agents-google/
     │   └── persona/            ← Shared system prompt + RAG docs (both backends)
     ├── nora/
     │   └── BUILD.md     ← Nora agent build & deploy info
-    └── sloane/
-        └── BUILD.md     ← Sloane agent build & deploy info
+    ├── sloane/
+    │   └── BUILD.md     ← Sloane agent build & deploy info
+    └── process-optimization/
+        ├── BUILD.md     ← Process-Optimization agent build & deploy info
+        └── persona/     ← System prompt + RAG docs
 ```
