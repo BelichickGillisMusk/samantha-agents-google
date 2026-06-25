@@ -1,6 +1,6 @@
 # Samantha Agent — Build & Deploy Info
 
-> **GCP Project ID:** `samantha-agent`  
+> **GCP Project ID:** `samantha-493919`  
 > **Cloud Run Service:** `samantha`  
 > **Region:** `us-central1`
 
@@ -18,7 +18,7 @@ Complete the one-time steps in [SETUP.md](../../SETUP.md) first, then:
 
 ```bash
 # Set the active project
-gcloud config set project samantha-agent
+gcloud config set project samantha-493919
 
 # Confirm you are targeting the right project
 gcloud config get project
@@ -31,7 +31,7 @@ gcloud config get project
 Copy the root `.env.example` and set these Samantha-specific values:
 
 ```dotenv
-GOOGLE_CLOUD_PROJECT=samantha-agent
+GOOGLE_CLOUD_PROJECT=samantha-493919
 GOOGLE_CLOUD_REGION=us-central1
 AR_REGISTRY=us-central1-docker.pkg.dev
 AR_REPOSITORY=agents
@@ -49,7 +49,7 @@ AGENT_BASE_URL=https://samantha-<hash>-uc.a.run.app
 
 ```bash
 # From the repo root (or the samantha service source directory)
-IMAGE="us-central1-docker.pkg.dev/samantha-agent/agents/samantha:$(git rev-parse --short HEAD)"
+IMAGE="us-central1-docker.pkg.dev/samantha-493919/agents/samantha:$(git rev-parse --short HEAD)"
 
 docker build -t "$IMAGE" .
 ```
@@ -58,7 +58,7 @@ docker build -t "$IMAGE" .
 
 ```bash
 gcloud builds submit \
-  --project=samantha-agent \
+  --project=samantha-493919 \
   --region=us-central1 \
   --tag="$IMAGE"
 ```
@@ -75,6 +75,7 @@ docker run --rm -p 8080:8080 \
   -e GOOGLE_CLOUD_PROJECT \
   -e GOOGLE_CLOUD_REGION \
   -e VERTEX_AI_MODEL \
+  -e SAMANTHA_APP_KEY \
   -e GOOGLE_APPLICATION_CREDENTIALS \
   -v "$GOOGLE_APPLICATION_CREDENTIALS:/tmp/sa.json:ro" \
   -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json \
@@ -89,24 +90,27 @@ The agent is available at <http://localhost:8080>.
 
 ```bash
 gcloud run deploy samantha \
-  --project=samantha-agent \
+  --project=samantha-493919 \
   --region=us-central1 \
   --image="$IMAGE" \
   --platform=managed \
   --allow-unauthenticated \
   --max-instances=10 \
-  --set-env-vars="GOOGLE_CLOUD_PROJECT=samantha-agent,VERTEX_AI_MODEL=gemini-1.5-pro"
+  --set-env-vars="GOOGLE_CLOUD_PROJECT=samantha-493919,VERTEX_AI_MODEL=gemini-1.5-pro" \
+  --set-secrets="SAMANTHA_APP_KEY=SAMANTHA_APP_KEY:latest"
 ```
+
+`--set-secrets` mounts the latest version of the `SAMANTHA_APP_KEY` secret (managed in Secret Manager — see [Secrets](#secrets)) as an env var inside the container. The Cloud Run service account needs `roles/secretmanager.secretAccessor` on that secret.
 
 ### Rollback to a previous revision
 
 ```bash
 # List revisions
-gcloud run revisions list --service=samantha --project=samantha-agent --region=us-central1
+gcloud run revisions list --service=samantha --project=samantha-493919 --region=us-central1
 
 # Roll traffic back to a specific revision
 gcloud run services update-traffic samantha \
-  --project=samantha-agent \
+  --project=samantha-493919 \
   --region=us-central1 \
   --to-revisions=samantha-00010-abc=100
 ```
@@ -120,14 +124,50 @@ Samantha reads secrets from **Secret Manager**. Add or update a secret:
 ```bash
 # Create a new secret
 echo -n "my-secret-value" | gcloud secrets create MY_SECRET_NAME \
-  --project=samantha-agent \
+  --project=samantha-493919 \
   --data-file=-
 
 # Update an existing secret's value
 echo -n "new-value" | gcloud secrets versions add MY_SECRET_NAME \
-  --project=samantha-agent \
+  --project=samantha-493919 \
   --data-file=-
 ```
+
+### `SAMANTHA_APP_KEY` — the Google API credential
+
+Samantha's API credential against the broad Google API surface in
+`samantha-493919` lives in two places: the **BelichickGillisMusk org-level
+GitHub Actions secret** named `SAMANTHA_APP_KEY` (used by CI when running the
+deploy pipeline) and a mirrored copy in **Secret Manager** named
+`SAMANTHA_APP_KEY` in `samantha-493919` (consumed at runtime by Cloud Run via
+`--set-secrets` above).
+
+One-time bootstrap of the Secret Manager copy (run by someone who already has
+the plaintext value — the GitHub copy can't be read back via the API):
+
+```bash
+# Pipe the value directly so it never lands in shell history / a file.
+read -rs -p "Paste SAMANTHA_APP_KEY: " VALUE && echo
+printf '%s' "$VALUE" | gcloud secrets create SAMANTHA_APP_KEY \
+  --project=samantha-493919 --replication-policy=automatic --data-file=-
+unset VALUE
+
+# Grant the Cloud Run runtime SA read access (replace SA email if you use a custom one)
+SA="$(gcloud run services describe samantha --project=samantha-493919 \
+  --region=us-central1 --format='value(spec.template.spec.serviceAccountName)')"
+gcloud secrets add-iam-policy-binding SAMANTHA_APP_KEY \
+  --project=samantha-493919 \
+  --member="serviceAccount:${SA:-$(gcloud projects describe samantha-493919 --format='value(projectNumber)')-compute@developer.gserviceaccount.com}" \
+  --role=roles/secretmanager.secretAccessor
+```
+
+To rotate, add a new version with `gcloud secrets versions add SAMANTHA_APP_KEY
+--project=samantha-493919 --data-file=-` then redeploy (Cloud Run picks up the
+new `:latest` on the next revision). Update the GitHub org secret separately so
+CI stays in sync.
+
+For local dev, set `SAMANTHA_APP_KEY=` in `.env` (already exposed by the
+`docker run` block in [Run Locally](#run-locally)).
 
 ---
 
@@ -136,18 +176,18 @@ echo -n "new-value" | gcloud secrets versions add MY_SECRET_NAME \
 ```bash
 # View live logs
 gcloud run services logs tail samantha \
-  --project=samantha-agent \
+  --project=samantha-493919 \
   --region=us-central1
 
 # Describe the service (URL, env vars, traffic splits)
 gcloud run services describe samantha \
-  --project=samantha-agent \
+  --project=samantha-493919 \
   --region=us-central1
 
 # List all container images
 gcloud artifacts docker images list \
-  us-central1-docker.pkg.dev/samantha-agent/agents \
-  --project=samantha-agent
+  us-central1-docker.pkg.dev/samantha-493919/agents \
+  --project=samantha-493919
 ```
 
 ---
@@ -164,7 +204,7 @@ To trigger a build manually:
 
 ```bash
 gcloud builds triggers run samantha-deploy \
-  --project=samantha-agent \
+  --project=samantha-493919 \
   --region=us-central1 \
   --branch=main
 ```

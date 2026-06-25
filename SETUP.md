@@ -68,7 +68,7 @@ Switch between projects by setting the active configuration:
 
 ```bash
 # Samantha
-gcloud config set project samantha-agent
+gcloud config set project samantha-493919
 
 # Nora
 gcloud config set project nora-agent
