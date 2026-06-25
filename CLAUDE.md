@@ -13,6 +13,7 @@ There is no test suite, lint config, build script, or package manifest at the re
 Every agent under `projects/<name>/` follows the **same** pattern. Mirror it exactly when adding or editing one:
 
 - **GCP project:** `<name>-agent` · **Cloud Run service / image name:** `<name>` · **Region:** `us-central1`
+  - **Samantha is the documented exception:** her project ID is `samantha-493919` (a legacy ID predating the convention), not `samantha-agent`. New agents still follow `<name>-agent`.
 - **Artifact Registry repo:** `agents` (host `us-central1-docker.pkg.dev`)
 - **Model:** `gemini-1.5-pro` via Vertex AI
 - **Files:** `projects/<name>/BUILD.md`, `projects/<name>/persona/system_prompt.md`, `projects/<name>/persona/knowledge/README.md`
@@ -76,7 +77,7 @@ docker compose down -v && rm -rf ollama open-webui  # full reset
 
 The root `.env.example` is a **Markdown file with a fenced dotenv block** — `cp .env.example .env` then strip the markdown wrapper, or copy just the dotenv contents. Required keys cluster around: `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_REGION`, `AR_REGISTRY`, `AR_REPOSITORY`, `CLOUD_RUN_SERVICE`, `VERTEX_AI_REGION`, `VERTEX_AI_MODEL`, `AGENT_BASE_URL`. `WEBUI_SECRET_KEY` is only for the Samantha local harness — generate with `openssl rand -hex 32` and make sure the final `.env` has **exactly one** `WEBUI_SECRET_KEY=` assignment (loader behavior on duplicates varies: some take the first, docker-compose's env_file takes the last — don't rely on either).
 
-Production secrets go through **Secret Manager** (`gcloud secrets create / versions add`), never `.env` or the repo.
+Production secrets go through **Secret Manager** (`gcloud secrets create / versions add`), never `.env` or the repo. Samantha's Google API credential `SAMANTHA_APP_KEY` is the canonical example: source of truth is the **BelichickGillisMusk org-level GitHub Actions secret** (write-only via the GitHub API), mirrored into Secret Manager in `samantha-493919`, and injected at runtime via `gcloud run deploy ... --set-secrets="SAMANTHA_APP_KEY=SAMANTHA_APP_KEY:latest"`. See [`projects/samantha/BUILD.md`](projects/samantha/BUILD.md#samantha_app_key--the-google-api-credential) for the one-time bootstrap.
 
 ## CI/CD
 
