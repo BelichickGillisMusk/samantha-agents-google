@@ -74,13 +74,13 @@ docker compose down -v && rm -rf ollama open-webui  # full reset
 
 ## Env vars
 
-The root `.env.example` is a **Markdown file with a fenced dotenv block** — `cp .env.example .env` then strip the markdown wrapper, or copy just the dotenv contents. Required keys cluster around: `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_REGION`, `AR_REGISTRY`, `AR_REPOSITORY`, `CLOUD_RUN_SERVICE`, `VERTEX_AI_REGION`, `VERTEX_AI_MODEL`, `AGENT_BASE_URL`. `WEBUI_SECRET_KEY` is only for the Samantha local harness — generate with `openssl rand -hex 32` and **edit the existing empty line in place** (dotenv loaders take the first occurrence, so appending a second line is silently ignored).
+The root `.env.example` is a **Markdown file with a fenced dotenv block** — `cp .env.example .env` then strip the markdown wrapper, or copy just the dotenv contents. Required keys cluster around: `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_REGION`, `AR_REGISTRY`, `AR_REPOSITORY`, `CLOUD_RUN_SERVICE`, `VERTEX_AI_REGION`, `VERTEX_AI_MODEL`, `AGENT_BASE_URL`. `WEBUI_SECRET_KEY` is only for the Samantha local harness — generate with `openssl rand -hex 32` and make sure the final `.env` has **exactly one** `WEBUI_SECRET_KEY=` assignment (loader behavior on duplicates varies: some take the first, docker-compose's env_file takes the last — don't rely on either).
 
 Production secrets go through **Secret Manager** (`gcloud secrets create / versions add`), never `.env` or the repo.
 
 ## CI/CD
 
-`.github/workflows/google.yml` is the GitHub Actions pipeline; each agent's `BUILD.md` also documents a Cloud Build trigger named `<name>-deploy` that runs on pushes to `main` (build image → deploy → smoke-test the Cloud Run URL). Manual trigger:
+The real per-agent pipeline is the **Cloud Build trigger** named `<name>-deploy` documented in each agent's `BUILD.md` — it runs on pushes to `main` and does build image → deploy → smoke-test the Cloud Run URL. The two files under `.github/workflows/` are **not** the real pipeline: `google.yml` is the unmodified GKE sample (placeholders `PROJECT_ID: my-project`, `REPOSITORY: samples`, GKE deploy steps) and `blank.yml` is a Hello World stub. Leave them alone or replace them deliberately — don't treat them as canonical. Manual trigger of the Cloud Build path:
 
 ```bash
 gcloud builds triggers run <name>-deploy --project=<name>-agent --region=us-central1 --branch=main
@@ -90,5 +90,5 @@ gcloud builds triggers run <name>-deploy --project=<name>-agent --region=us-cent
 
 - **Don't claim pipelines exist that aren't documented** (e.g. the Vertex AI Search ingestion path for `persona/knowledge/`). Mirror the repo's deliberately honest wording.
 - **Don't invent BUILD.md steps** not present in the existing agents — they're meant to be uniform.
-- When scaffolding a new agent, `grep -r "<name>" projects/<name>` to catch leftover template tokens (`samantha`, `nora`, `sloane`, `<name>`, `<hash>`) before committing.
+- When scaffolding a new agent (e.g. `widget`), grep its dir for **all** leftover template tokens before committing — not just its own name: `grep -rE "samantha|nora|sloane|<name>|<hash>" projects/widget` (extend the alternation with any other agent names already in the repo).
 - Keep changes scoped to the agent being touched; don't refactor unrelated files.
