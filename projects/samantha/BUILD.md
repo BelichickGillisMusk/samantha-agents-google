@@ -97,10 +97,10 @@ gcloud run deploy samantha \
   --allow-unauthenticated \
   --max-instances=10 \
   --set-env-vars="GOOGLE_CLOUD_PROJECT=samantha-493919,VERTEX_AI_MODEL=gemini-1.5-pro" \
-  --set-secrets="SAMANTHA_APP_KEY=SAMANTHA_APP_KEY:latest"
+  --set-secrets="SAMANTHA_APP_KEY=Samantha_App_Key:latest"
 ```
 
-`--set-secrets` mounts the latest version of the `SAMANTHA_APP_KEY` secret (managed in Secret Manager — see [Secrets](#secrets)) as an env var inside the container. The Cloud Run service account needs `roles/secretmanager.secretAccessor` on that secret.
+`--set-secrets` mounts the latest version of the Secret Manager secret `Samantha_App_Key` (mixed case — Secret Manager names are case-sensitive and this one mirrors the GitHub Actions secret naming) as the env var `SAMANTHA_APP_KEY` inside the container (all caps — Linux env-var convention; container code reads `SAMANTHA_APP_KEY`). The Cloud Run service account needs `roles/secretmanager.secretAccessor` on that secret.
 
 ### Rollback to a previous revision
 
@@ -133,35 +133,42 @@ echo -n "new-value" | gcloud secrets versions add MY_SECRET_NAME \
   --data-file=-
 ```
 
-### `SAMANTHA_APP_KEY` — the Google API credential
+### `Samantha_App_Key` — the Google API credential
 
 Samantha's API credential against the broad Google API surface in
-`samantha-493919` lives in two places: the **BelichickGillisMusk org-level
-GitHub Actions secret** named `SAMANTHA_APP_KEY` (used by CI when running the
-deploy pipeline) and a mirrored copy in **Secret Manager** named
-`SAMANTHA_APP_KEY` in `samantha-493919` (consumed at runtime by Cloud Run via
-`--set-secrets` above).
+`samantha-493919` lives in two places, and **the names are deliberately
+different**: the **BelichickGillisMusk org-level GitHub Actions secret** named
+`Samantha_App_Key` (used by CI when running the deploy pipeline) and a mirrored
+copy in **Secret Manager** also named `Samantha_App_Key` (mixed case — the
+case is significant; Secret Manager names are case-sensitive) in
+`samantha-493919`, consumed at runtime by Cloud Run via `--set-secrets` above
+and surfaced inside the container as the env var `SAMANTHA_APP_KEY` (all caps
+— Linux env-var convention; container code reads the all-caps name).
 
-One-time bootstrap of the Secret Manager copy (run by someone who already has
-the plaintext value — the GitHub copy can't be read back via the API):
+The Secret Manager copy already exists. The bootstrap below is only for fresh
+environments or DR; do **not** re-run it against `samantha-493919` unless you
+mean to.
+
+One-time bootstrap (run by someone who has the plaintext value — the GitHub
+copy can't be read back via the API):
 
 ```bash
 # Pipe the value directly so it never lands in shell history / a file.
-read -rs -p "Paste SAMANTHA_APP_KEY: " VALUE && echo
-printf '%s' "$VALUE" | gcloud secrets create SAMANTHA_APP_KEY \
+read -rs -p "Paste Samantha_App_Key: " VALUE && echo
+printf '%s' "$VALUE" | gcloud secrets create Samantha_App_Key \
   --project=samantha-493919 --replication-policy=automatic --data-file=-
 unset VALUE
 
 # Grant the Cloud Run runtime SA read access (replace SA email if you use a custom one)
 SA="$(gcloud run services describe samantha --project=samantha-493919 \
   --region=us-central1 --format='value(spec.template.spec.serviceAccountName)')"
-gcloud secrets add-iam-policy-binding SAMANTHA_APP_KEY \
+gcloud secrets add-iam-policy-binding Samantha_App_Key \
   --project=samantha-493919 \
   --member="serviceAccount:${SA:-$(gcloud projects describe samantha-493919 --format='value(projectNumber)')-compute@developer.gserviceaccount.com}" \
   --role=roles/secretmanager.secretAccessor
 ```
 
-To rotate, add a new version with `gcloud secrets versions add SAMANTHA_APP_KEY
+To rotate, add a new version with `gcloud secrets versions add Samantha_App_Key
 --project=samantha-493919 --data-file=-` then redeploy (Cloud Run picks up the
 new `:latest` on the next revision). Update the GitHub org secret separately so
 CI stays in sync.
