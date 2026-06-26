@@ -16,16 +16,25 @@ for fast scanning, not exhaustive — full detail in [`BUILD.md`](BUILD.md) and
 
 ---
 
-## Give her a task right now (no deploy needed)
+## Give her — or any of the team — a task right now (no deploy needed)
 
 ```bash
-gcloud auth login                              # once per machine
+gcloud auth login                                          # once per machine
 gcloud config set project samantha-493919
-./projects/samantha/chat.py                    # interactive REPL
-./projects/samantha/chat.py "Plan my Tuesday"  # one-shot
+./projects/samantha/chat.py                                # Samantha REPL (default)
+./projects/samantha/chat.py --agent nora                   # Nora REPL (ops)
+./projects/samantha/chat.py --agent sloane "Draft a tagline."
+echo "Categorize: $84 Office Depot" | ./projects/samantha/chat.py --agent audra
 ```
 
-REPL commands: `/reset` clears memory, `/exit` (or Ctrl-D) quits.
+REPL commands: `/reset` clears memory, `/agent <name>` switches persona (resets memory), `/exit` (or Ctrl-D) quits.
+
+| Agent | What to give her |
+|---|---|
+| **Samantha** | Anything Google-API-adjacent: "draft a reply to this email", "what's on my calendar", "outline a Drive folder structure" |
+| **Nora** | "Is the carb-clean-truck-check worker live?", "list our Make scenarios that ran in the last 24h", "diagnose the intake form drop-off" |
+| **Sloane** | "Write a homepage hero for undefeated-solar", "rewrite this in our brand voice", "3 social posts for the lodi launch" |
+| **Audra** | "Categorize these 12 expenses", "draft an invoice to $client for $amount", "what's our highest expense category this month?" |
 
 ---
 
