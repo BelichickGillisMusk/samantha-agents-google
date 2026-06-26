@@ -10,6 +10,13 @@
 
 Samantha is a conversational AI agent built with Vertex AI / Gemini and deployed on Cloud Run. This document covers everything you need to build, test, and deploy Samantha from a machine **outside** of Google Cloud.
 
+> **Just want to give Samantha a task right now?** You don't need the deploy to
+> be live — `./projects/samantha/chat.py "Plan my Tuesday"` hits Vertex AI
+> Gemini directly in `samantha-493919` using the persona from
+> `persona/system_prompt.md`. Requires only `gcloud auth login`. The Cloud Run
+> service is the production hosting path; `chat.py` is the immediate
+> "talk-to-her" CLI for iteration.
+
 ---
 
 ## Prerequisites
@@ -101,6 +108,27 @@ gcloud run deploy samantha \
 ```
 
 `--set-secrets` mounts the latest version of the Secret Manager secret `Samantha_App_Key` (mixed case — Secret Manager names are case-sensitive and this one mirrors the GitHub Actions secret naming) as the env var `SAMANTHA_APP_KEY` inside the container (all caps — Linux env-var convention; container code reads `SAMANTHA_APP_KEY`). The Cloud Run service account needs `roles/secretmanager.secretAccessor` on that secret.
+
+### Talk to Samantha without the Cloud Run service (`chat.py`)
+
+For iteration, persona tweaking, or just to give her tasks before the
+deploy is wired:
+
+```bash
+gcloud auth login                              # one-time, if you haven't
+gcloud config set project samantha-493919
+
+./projects/samantha/chat.py "Plan my Tuesday — three priorities, 30 min each."
+echo "Draft a polite decline to that 9am meeting." | ./projects/samantha/chat.py
+```
+
+`chat.py` reads `persona/system_prompt.md` (between the `BEGIN`/`END SYSTEM
+PROMPT` markers — same text production sends to Gemini), calls Vertex AI
+`gemini-1.5-pro` in `samantha-493919/us-central1`, and prints her reply. It
+uses your gcloud login (`gcloud auth print-access-token`), not the
+`SAMANTHA_APP_KEY` secret — so it works the moment your account is
+authenticated, regardless of Cloud Run state. Override `SAMANTHA_PROJECT`,
+`SAMANTHA_REGION`, or `SAMANTHA_MODEL` env vars if you want to swap targets.
 
 ### Verify the deploy: "can I give her a task?"
 
