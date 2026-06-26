@@ -102,6 +102,35 @@ gcloud run deploy samantha \
 
 `--set-secrets` mounts the latest version of the Secret Manager secret `Samantha_App_Key` (mixed case — Secret Manager names are case-sensitive and this one mirrors the GitHub Actions secret naming) as the env var `SAMANTHA_APP_KEY` inside the container (all caps — Linux env-var convention; container code reads `SAMANTHA_APP_KEY`). The Cloud Run service account needs `roles/secretmanager.secretAccessor` on that secret.
 
+### Verify the deploy: "can I give her a task?"
+
+After `gcloud run deploy` returns, the one command that tells you the deploy
+actually achieved its goal is:
+
+```bash
+./projects/samantha/smoke_test.sh                  # reachability + bindings
+./projects/samantha/smoke_test.sh "Plan my Tuesday" # actually post a task
+```
+
+The script:
+
+1. Looks up the Cloud Run service URL via `gcloud run services describe`.
+2. Confirms `GOOGLE_CLOUD_PROJECT`, `VERTEX_AI_MODEL`, and the
+   `SAMANTHA_APP_KEY` secret binding are all attached to the live revision —
+   prints the exact `gcloud run services update` command to run if any is
+   missing.
+3. Probes the service root for a 2xx/3xx.
+4. If you pass a task as `$1`, POSTs it to the service's chat endpoint
+   (defaults to `/chat`; override with `CHAT_PATH=/api/chat ./smoke_test.sh
+   "..."`) and prints the response.
+
+Exit code is 0 only when the service is live AND has the required bindings AND
+(if a task was given) the chat endpoint returned 2xx. Anything else exits
+non-zero with a pointer at the fix.
+
+If the smoke test passes with a real task, **the goal is met**: the deployed
+Samantha can take instructions from you.
+
 ### Rollback to a previous revision
 
 ```bash
