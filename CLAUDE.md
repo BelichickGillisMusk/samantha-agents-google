@@ -77,7 +77,13 @@ docker compose down -v && rm -rf ollama open-webui  # full reset
 
 The root `.env.example` is a **Markdown file with a fenced dotenv block** — `cp .env.example .env` then strip the markdown wrapper, or copy just the dotenv contents. Required keys cluster around: `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_REGION`, `AR_REGISTRY`, `AR_REPOSITORY`, `CLOUD_RUN_SERVICE`, `VERTEX_AI_REGION`, `VERTEX_AI_MODEL`, `AGENT_BASE_URL`. `WEBUI_SECRET_KEY` is only for the Samantha local harness — generate with `openssl rand -hex 32` and make sure the final `.env` has **exactly one** `WEBUI_SECRET_KEY=` assignment (loader behavior on duplicates varies: some take the first, docker-compose's env_file takes the last — don't rely on either).
 
-Production secrets go through **Secret Manager** (`gcloud secrets create / versions add`), never `.env` or the repo. Samantha's Google API credential is the canonical example: source of truth is the **BelichickGillisMusk org-level GitHub Actions secret** `Samantha_App_Key` (write-only via the GitHub API), mirrored into Secret Manager in `samantha-493919` under the same case-sensitive name `Samantha_App_Key`, and injected at runtime via `gcloud run deploy ... --set-secrets="SAMANTHA_APP_KEY=Samantha_App_Key:latest"`. **The names differ on purpose:** the Secret Manager / GitHub secret is mixed-case (`Samantha_App_Key`); inside the container it's the all-caps env var `SAMANTHA_APP_KEY`. See [`projects/samantha/BUILD.md`](projects/samantha/BUILD.md#samantha_app_key--the-google-api-credential) for the bootstrap and rotation steps.
+Production secrets go through **Secret Manager** (`gcloud secrets create / versions add`), never `.env` or the repo. Samantha's Google API credential is the canonical example, and the **same value lives under three differently-cased names** across systems — don't try to "normalize" them:
+
+- **GitHub Actions org secret** (BelichickGillisMusk, public-repo scope): `SAMANTHA_APP_KEY` (all-caps; write-only via the GitHub API). A `SAMANTHA` secret also exists scoped to private repos — verify separately before assuming it's the same value.
+- **GCP Secret Manager** (in `samantha-493919`): `Samantha_App_Key` (mixed case; Secret Manager is case-sensitive).
+- **Container env var**: `SAMANTHA_APP_KEY` (all-caps Linux env-var convention).
+
+Injected at runtime via `gcloud run deploy ... --set-secrets="SAMANTHA_APP_KEY=Samantha_App_Key:latest"`. See [`projects/samantha/BUILD.md`](projects/samantha/BUILD.md#samantha_app_key--the-google-api-credential) for the bootstrap and rotation steps.
 
 ## CI/CD
 

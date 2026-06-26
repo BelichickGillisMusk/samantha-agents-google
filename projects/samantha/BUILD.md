@@ -136,14 +136,19 @@ echo -n "new-value" | gcloud secrets versions add MY_SECRET_NAME \
 ### `Samantha_App_Key` — the Google API credential
 
 Samantha's API credential against the broad Google API surface in
-`samantha-493919` lives in two places, and **the names are deliberately
-different**: the **BelichickGillisMusk org-level GitHub Actions secret** named
-`Samantha_App_Key` (used by CI when running the deploy pipeline) and a mirrored
-copy in **Secret Manager** also named `Samantha_App_Key` (mixed case — the
-case is significant; Secret Manager names are case-sensitive) in
-`samantha-493919`, consumed at runtime by Cloud Run via `--set-secrets` above
-and surfaced inside the container as the env var `SAMANTHA_APP_KEY` (all caps
-— Linux env-var convention; container code reads the all-caps name).
+`samantha-493919` lives in two places, with **the same value under three
+different name castings** (don't try to "normalize" them):
+
+| System | Name | Notes |
+|---|---|---|
+| GitHub Actions org secret (BelichickGillisMusk) | `SAMANTHA_APP_KEY` | all-caps; scoped to **public** repos in the org. A separate org secret named `SAMANTHA` exists scoped to **private** repos — verify before assuming it's the same value. |
+| GCP Secret Manager (in `samantha-493919`) | `Samantha_App_Key` | mixed case — Secret Manager names are case-sensitive. |
+| Cloud Run container env var | `SAMANTHA_APP_KEY` | all-caps Linux env-var convention; container code reads this. |
+
+The plumbing: CI reads `${{ secrets.SAMANTHA_APP_KEY }}` and writes the value
+into Secret Manager as `Samantha_App_Key` (already mirrored — see below); Cloud
+Run mounts that secret as the env var `SAMANTHA_APP_KEY` via `--set-secrets`
+above.
 
 The Secret Manager copy already exists. The bootstrap below is only for fresh
 environments or DR; do **not** re-run it against `samantha-493919` unless you
