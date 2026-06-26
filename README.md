@@ -10,7 +10,7 @@ All information here is intended for editing and building these projects from **
 
 | Agent | GCP Project | Status | Docs |
 |-------|------------|--------|------|
-| Samantha | `samantha-493919` (legacy ID — does **not** follow the `<name>-agent` convention) | Active | [Build Info](projects/samantha/BUILD.md) · [Local Dev](projects/samantha/LOCAL_DEV.md) |
+| Samantha | `samantha-493919` (legacy ID — does **not** follow the `<name>-agent` convention) | Active | [Cheatsheet](projects/samantha/CHEATSHEET.md) · [Build Info](projects/samantha/BUILD.md) · [Local Dev](projects/samantha/LOCAL_DEV.md) |
 | Nora | `nora-agent` | Active | [Build Info](projects/nora/BUILD.md) |
 | Sloane | `sloane-agent` | Active | [Build Info](projects/sloane/BUILD.md) |
 | Process-Optimization | `process-optimization-agent` | Active | [Build Info](projects/process-optimization/BUILD.md) |
