@@ -22,19 +22,21 @@ for fast scanning, not exhaustive — full detail in [`BUILD.md`](BUILD.md) and
 gcloud auth login                                          # once per machine
 gcloud config set project samantha-493919
 ./projects/samantha/chat.py                                # Samantha REPL (default)
-./projects/samantha/chat.py --agent nora                   # Nora REPL (ops)
+./projects/samantha/chat.py --agent nora                   # Nora REPL (ops monitoring)
 ./projects/samantha/chat.py --agent sloane "Draft a tagline."
 echo "Categorize: $84 Office Depot" | ./projects/samantha/chat.py --agent audra
+./projects/samantha/chat.py --agent vin "Plan a cleanup of the 7 stub Workers."
 ```
 
 REPL commands: `/reset` clears memory, `/agent <name>` switches persona (resets memory), `/exit` (or Ctrl-D) quits.
 
-| Agent | What to give her |
+| Agent | What to give her / him |
 |---|---|
-| **Samantha** | Anything Google-API-adjacent: "draft a reply to this email", "what's on my calendar", "outline a Drive folder structure" |
-| **Nora** | "Is the carb-clean-truck-check worker live?", "list our Make scenarios that ran in the last 24h", "diagnose the intake form drop-off" |
+| **Samantha** | Google-API-adjacent: "draft a reply to this email", "what's on my calendar", "outline a Drive folder structure" |
+| **Nora** | "Is the carb-clean-truck-check worker live?", "list Make scenarios that ran in the last 24h", "diagnose the intake form drop-off" |
 | **Sloane** | "Write a homepage hero for undefeated-solar", "rewrite this in our brand voice", "3 social posts for the lodi launch" |
 | **Audra** | "Categorize these 12 expenses", "draft an invoice to $client for $amount", "what's our highest expense category this month?" |
+| **Vin** | "Plan the cleanup sweep of the 7 stub Workers", "draft a PR description for the X change", "what's the safest rollback path for the carb-clean-truck-check deploy?" |
 
 ---
 

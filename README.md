@@ -14,9 +14,10 @@ All information here is intended for editing and building these projects from **
 | **Nora** — Ops (website / Make.com / lead intake) | `nora-agent` | Persona live, deploy pending | [Build Info](projects/nora/BUILD.md) |
 | **Sloane** — Content & brand voice | `sloane-agent` | Persona live, deploy pending | [Build Info](projects/sloane/BUILD.md) |
 | **Audra** — Accounting & bookkeeping | `audra-agent` | Persona live, deploy pending | [Build Info](projects/audra/BUILD.md) |
+| **Vin** — Site infra (Cloudflare + GitHub) | `vin-agent` | Persona live, deploy + connectors pending | [Build Info](projects/vin/BUILD.md) |
 | Process-Optimization | `process-optimization-agent` | Active (meta-agent — scaffolds new agents) | [Build Info](projects/process-optimization/BUILD.md) |
 
-**Talk to any of the four right now** (no deploy needed): `./projects/samantha/chat.py --agent <samantha\|nora\|sloane\|audra>` from the repo root. Same CLI, four personas, one shared Vertex AI project (`samantha-493919`) until per-agent projects are stood up.
+**Talk to any of the five right now** (no deploy needed): `./projects/samantha/chat.py --agent <samantha\|nora\|sloane\|audra\|vin>` from the repo root. Same CLI, five personas, one shared Vertex AI project (`samantha-493919`) until per-agent projects are stood up.
 
 > **Deploying a new agent?** Use the [`/process-optimization`](.claude/commands/process-optimization.md)
 > Claude Code agent — it scaffolds, configures, and submits a new agent following the

@@ -9,9 +9,10 @@ regardless of deploy state.
 Usage:
 
   ./projects/samantha/chat.py                          # Samantha REPL (default)
-  ./projects/samantha/chat.py --agent nora             # Nora REPL
+  ./projects/samantha/chat.py --agent nora             # Nora REPL (ops monitoring)
   ./projects/samantha/chat.py --agent sloane "Draft a tagline for the rebrand."
   echo "Categorize this expense: $84 Office Depot." | ./projects/samantha/chat.py --agent audra
+  ./projects/samantha/chat.py --agent vin "Plan a clean-up sweep of the 7 stub Workers."
 
 REPL commands: /reset clears memory · /exit (or Ctrl-D) quits · /agent <name>
 switches persona mid-session (memory is wiped — different agent, different
@@ -29,7 +30,7 @@ import sys
 import urllib.error
 import urllib.request
 
-AGENTS = ("samantha", "nora", "sloane", "audra")
+AGENTS = ("samantha", "nora", "sloane", "audra", "vin")
 
 PROJECT = os.environ.get("SAMANTHA_PROJECT", "samantha-493919")
 REGION = os.environ.get("SAMANTHA_REGION", "us-central1")
