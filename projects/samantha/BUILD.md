@@ -112,14 +112,24 @@ gcloud run deploy samantha \
 ### Talk to Samantha without the Cloud Run service (`chat.py`)
 
 For iteration, persona tweaking, or just to give her tasks before the
-deploy is wired:
+deploy is wired. Three modes:
 
 ```bash
 gcloud auth login                              # one-time, if you haven't
 gcloud config set project samantha-493919
 
+# Interactive REPL — multi-turn, conversation memory carries between turns:
+./projects/samantha/chat.py
+# > Plan my Tuesday — three priorities, 30 min each.
+# > Now reshuffle for Wednesday with a 9am dentist appointment.
+# > /reset   (clears memory)
+# > /exit    (or Ctrl-D)
+
+# One-shot from argv:
 ./projects/samantha/chat.py "Plan my Tuesday — three priorities, 30 min each."
-echo "Draft a polite decline to that 9am meeting." | ./projects/samantha/chat.py
+
+# One-shot from stdin:
+echo "Draft a polite decline to the 9am meeting." | ./projects/samantha/chat.py
 ```
 
 `chat.py` reads `persona/system_prompt.md` (between the `BEGIN`/`END SYSTEM
@@ -129,6 +139,10 @@ uses your gcloud login (`gcloud auth print-access-token`), not the
 `SAMANTHA_APP_KEY` secret — so it works the moment your account is
 authenticated, regardless of Cloud Run state. Override `SAMANTHA_PROJECT`,
 `SAMANTHA_REGION`, or `SAMANTHA_MODEL` env vars if you want to swap targets.
+
+Memory in the REPL is in-process only — closing the window forgets the
+conversation. The script intentionally has no persistence; for a long-lived
+chat surface use the deployed Cloud Run service.
 
 ### Verify the deploy: "can I give her a task?"
 
