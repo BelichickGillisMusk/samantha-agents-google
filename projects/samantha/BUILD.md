@@ -10,6 +10,13 @@
 
 Samantha is a conversational AI agent built with Vertex AI / Gemini and deployed on Cloud Run. This document covers everything you need to build, test, and deploy Samantha from a machine **outside** of Google Cloud.
 
+> **Just want to give Samantha a task right now?** You don't need the deploy to
+> be live — `./projects/samantha/chat.py "Plan my Tuesday"` hits Vertex AI
+> Gemini directly in `samantha-493919` using the persona from
+> `persona/system_prompt.md`. Requires only `gcloud auth login`. The Cloud Run
+> service is the production hosting path; `chat.py` is the immediate
+> "talk-to-her" CLI for iteration.
+
 ---
 
 ## Prerequisites
@@ -101,6 +108,70 @@ gcloud run deploy samantha \
 ```
 
 `--set-secrets` mounts the latest version of the Secret Manager secret `Samantha_App_Key` (mixed case — Secret Manager names are case-sensitive and this one mirrors the GitHub Actions secret naming) as the env var `SAMANTHA_APP_KEY` inside the container (all caps — Linux env-var convention; container code reads `SAMANTHA_APP_KEY`). The Cloud Run service account needs `roles/secretmanager.secretAccessor` on that secret.
+
+### Talk to Samantha without the Cloud Run service (`chat.py`)
+
+For iteration, persona tweaking, or just to give her tasks before the
+deploy is wired. Three modes:
+
+```bash
+gcloud auth login                              # one-time, if you haven't
+gcloud config set project samantha-493919
+
+# Interactive REPL — multi-turn, conversation memory carries between turns:
+./projects/samantha/chat.py
+# > Plan my Tuesday — three priorities, 30 min each.
+# > Now reshuffle for Wednesday with a 9am dentist appointment.
+# > /reset   (clears memory)
+# > /exit    (or Ctrl-D)
+
+# One-shot from argv:
+./projects/samantha/chat.py "Plan my Tuesday — three priorities, 30 min each."
+
+# One-shot from stdin:
+echo "Draft a polite decline to the 9am meeting." | ./projects/samantha/chat.py
+```
+
+`chat.py` reads `persona/system_prompt.md` (between the `BEGIN`/`END SYSTEM
+PROMPT` markers — same text production sends to Gemini), calls Vertex AI
+`gemini-1.5-pro` in `samantha-493919/us-central1`, and prints her reply. It
+uses your gcloud login (`gcloud auth print-access-token`), not the
+`SAMANTHA_APP_KEY` secret — so it works the moment your account is
+authenticated, regardless of Cloud Run state. Override `SAMANTHA_PROJECT`,
+`SAMANTHA_REGION`, or `SAMANTHA_MODEL` env vars if you want to swap targets.
+
+Memory in the REPL is in-process only — closing the window forgets the
+conversation. The script intentionally has no persistence; for a long-lived
+chat surface use the deployed Cloud Run service.
+
+### Verify the deploy: "can I give her a task?"
+
+After `gcloud run deploy` returns, the one command that tells you the deploy
+actually achieved its goal is:
+
+```bash
+./projects/samantha/smoke_test.sh                  # reachability + bindings
+./projects/samantha/smoke_test.sh "Plan my Tuesday" # actually post a task
+```
+
+The script:
+
+1. Looks up the Cloud Run service URL via `gcloud run services describe`.
+2. Confirms `GOOGLE_CLOUD_PROJECT`, `VERTEX_AI_MODEL`, and the
+   `SAMANTHA_APP_KEY` secret binding are all attached to the live revision —
+   prints the exact `gcloud run services update` command to run if any is
+   missing.
+3. Probes the service root for a 2xx/3xx.
+4. If you pass a task as `$1`, POSTs it to the service's chat endpoint
+   (defaults to `/chat`; override with `CHAT_PATH=/api/chat ./smoke_test.sh
+   "..."`) and prints the response.
+
+Exit code is 0 only when the service is live AND has the required bindings AND
+(if a task was given) the chat endpoint returned 2xx. Anything else exits
+non-zero with a pointer at the fix.
+
+If the smoke test passes with a real task, **the goal is met**: the deployed
+Samantha can take instructions from you.
 
 ### Rollback to a previous revision
 
