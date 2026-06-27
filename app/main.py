@@ -82,7 +82,7 @@ def chat_endpoint(req: ChatRequest) -> dict:
     if not req.message.strip():
         raise HTTPException(400, "Empty message")
 
-    persona = chat.extract_persona(chat.persona_path(req.agent))
+    persona = chat.system_instruction(req.agent)
     contents = [
         {"role": t.role, "parts": [{"text": t.text}]} for t in req.history
     ]

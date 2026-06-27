@@ -58,6 +58,15 @@
       padding: 0 18px; font-weight: 600; cursor: pointer; min-width: 64px;
     }
     button.send:disabled { opacity: .5; cursor: not-allowed; }
+    button.mic {
+      background: var(--panel); color: var(--text); border: 1px solid var(--line);
+      border-radius: 12px; padding: 0 14px; cursor: pointer; min-width: 48px;
+      font-size: 18px;
+    }
+    button.mic.recording { background: var(--vin); color: #0b0d12; border-color: var(--vin); }
+    button.mic:disabled { opacity: .4; cursor: not-allowed; }
+    .slash-hint { font-size: 11px; color: var(--muted); padding: 4px 14px 0; }
+    .slash-hint code { background: var(--panel-2); padding: 1px 6px; border-radius: 4px; }
     .row { display: flex; justify-content: space-between; align-items: center; padding: 6px 14px 0; }
     .row button { background: none; border: 0; color: var(--muted); font: inherit; cursor: pointer; padding: 4px 0; }
     .row button:hover { color: var(--text); }
@@ -76,8 +85,12 @@
   </div>
   <main><div class="thread" id="thread"></div></main>
   <footer>
+    <div class="slash-hint">
+      <code>/agent vin</code> switch · <code>/reset</code> clear memory · <code>/help</code> commands · 🎙 voice
+    </div>
     <form class="composer" id="composer">
-      <textarea id="input" placeholder="Type a task…" rows="1" autocomplete="off"></textarea>
+      <textarea id="input" placeholder="Type a task or / for commands…" rows="1" autocomplete="off"></textarea>
+      <button type="button" class="mic" id="mic" title="Voice input">🎙</button>
       <button type="submit" class="send" id="send">Send</button>
     </form>
   </footer>
@@ -94,11 +107,13 @@
     const thread = document.getElementById("thread");
     const input = document.getElementById("input");
     const sendBtn = document.getElementById("send");
+    const micBtn = document.getElementById("mic");
     const composer = document.getElementById("composer");
     const meta = document.getElementById("meta");
     const activeLabel = document.getElementById("active-label");
     const resetBtn = document.getElementById("reset");
     const agentBar = document.getElementById("agents");
+    const AGENT_NAMES = Object.keys(AGENT_INFO);
 
     function setAgent(name) {
       state.agent = name;
@@ -154,10 +169,47 @@
       }
     }
 
+    function handleSlash(raw) {
+      const cmd = raw.trim();
+      if (cmd === "/help") {
+        pushMsg("model", [
+          "Commands:",
+          "  /agent <name>   switch agent (samantha | nora | sloane | audra | vin)",
+          "  /samantha … /vin   shorthand for /agent",
+          "  /reset            clear conversation memory",
+          "  /help             this message",
+          "Voice: tap 🎙 to dictate (Chrome / Safari).",
+        ].join("\n"));
+        return true;
+      }
+      if (cmd === "/reset") {
+        state.history = []; thread.innerHTML = "";
+        pushMsg("model", "(conversation reset)");
+        return true;
+      }
+      const agentSwitch = cmd.match(/^\/agent\s+(\w+)$/i);
+      if (agentSwitch) {
+        const target = agentSwitch[1].toLowerCase();
+        if (!AGENT_NAMES.includes(target)) {
+          pushMsg("model", `Unknown agent: ${target}. Choose: ${AGENT_NAMES.join(", ")}`);
+          return true;
+        }
+        setAgent(target);
+        return true;
+      }
+      const shortcut = cmd.match(/^\/(\w+)$/);
+      if (shortcut && AGENT_NAMES.includes(shortcut[1].toLowerCase())) {
+        setAgent(shortcut[1].toLowerCase());
+        return true;
+      }
+      return false; // not a known slash command — fall through to send as a message
+    }
+
     composer.addEventListener("submit", e => {
       e.preventDefault();
       const text = input.value;
       input.value = ""; input.style.height = "auto";
+      if (text.trim().startsWith("/") && handleSlash(text)) return;
       send(text);
     });
     input.addEventListener("keydown", e => {
@@ -186,6 +238,40 @@
       });
       setAgent("samantha");
     });
+
+    // Voice input via Web Speech API (Chrome / Safari).
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      micBtn.disabled = true;
+      micBtn.title = "Voice unsupported in this browser";
+    } else {
+      let rec = null;
+      let recording = false;
+      micBtn.addEventListener("click", () => {
+        if (recording) { rec && rec.stop(); return; }
+        rec = new SR();
+        rec.continuous = false;
+        rec.interimResults = true;
+        rec.lang = "en-US";
+        let buffer = input.value;
+        rec.onresult = (e) => {
+          let interim = "";
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            const t = e.results[i][0].transcript;
+            if (e.results[i].isFinal) buffer += (buffer ? " " : "") + t.trim();
+            else interim += t;
+          }
+          input.value = (buffer + (interim ? " " + interim : "")).trimStart();
+          input.style.height = "auto";
+          input.style.height = Math.min(160, input.scrollHeight) + "px";
+        };
+        rec.onerror = () => { recording = false; micBtn.classList.remove("recording"); };
+        rec.onend = () => { recording = false; micBtn.classList.remove("recording"); };
+        rec.start();
+        recording = true;
+        micBtn.classList.add("recording");
+      });
+    }
 
     // PWA — register service worker (best-effort)
     if ("serviceWorker" in navigator) {

@@ -37,6 +37,9 @@ REGION = os.environ.get("SAMANTHA_REGION", "us-central1")
 MODEL = os.environ.get("SAMANTHA_MODEL", "gemini-2.5-pro")
 PROJECTS_DIR = pathlib.Path(__file__).resolve().parent.parent
 
+# Optional knowledge grounding. Set SAMANTHA_NO_KNOWLEDGE=1 to disable.
+MAX_KNOWLEDGE_BYTES = int(os.environ.get("SAMANTHA_MAX_KNOWLEDGE_BYTES", str(800_000)))
+
 
 def persona_path(agent: str) -> pathlib.Path:
     if agent not in AGENTS:
@@ -55,6 +58,57 @@ def extract_persona(path: pathlib.Path) -> str:
     if e <= s:
         sys.exit(f"END SYSTEM PROMPT appears before BEGIN in {path}")
     return content[s + len(start) : e].strip()
+
+
+def knowledge_dir(agent: str) -> pathlib.Path:
+    return PROJECTS_DIR / agent / "persona" / "knowledge"
+
+
+def load_knowledge(agent: str, budget: int = MAX_KNOWLEDGE_BYTES) -> str:
+    """Concatenate every .md under projects/<agent>/persona/knowledge/ for
+    grounding. Returns empty string if disabled, missing, or only a README.
+
+    Files are joined with a header line per file so the model can cite them.
+    Truncates if the total exceeds `budget` bytes (Gemini 2.5 Pro can take
+    much more, but huge prompts cost real money on every call).
+    """
+    if os.environ.get("SAMANTHA_NO_KNOWLEDGE"):
+        return ""
+    d = knowledge_dir(agent)
+    if not d.exists():
+        return ""
+    parts: list[str] = []
+    total = 0
+    for path in sorted(d.rglob("*.md")):
+        # Skip the dropzone instruction README — it's not reference content.
+        if path.name == "README.md" and path.parent == d:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        chunk = f"\n\n----- {path.relative_to(PROJECTS_DIR)} -----\n{text.strip()}\n"
+        cost = len(chunk.encode("utf-8"))
+        if total + cost > budget:
+            parts.append(
+                f"\n\n----- truncated: knowledge budget {budget} bytes reached -----\n"
+            )
+            break
+        parts.append(chunk)
+        total += cost
+    if not parts:
+        return ""
+    return (
+        "The following reference documents are grounding context. Use them when\n"
+        "they're relevant; if a question falls outside what they cover, say so\n"
+        "rather than guessing.\n"
+    ) + "".join(parts)
+
+
+def system_instruction(agent: str) -> str:
+    persona = extract_persona(persona_path(agent))
+    knowledge = load_knowledge(agent)
+    return persona if not knowledge else f"{persona}\n\n{knowledge}"
 
 
 def access_token() -> str:
@@ -105,7 +159,7 @@ def call_gemini(persona: str, contents: list, token: str) -> str:
 
 
 def repl(agent: str, token: str) -> None:
-    persona = extract_persona(persona_path(agent))
+    persona = system_instruction(agent)
     name = agent.capitalize()
     print(
         f"{name} is on — model={MODEL}, project={PROJECT}.\n"
@@ -133,7 +187,7 @@ def repl(agent: str, token: str) -> None:
                 print(f"Unknown agent. Choose: {', '.join(AGENTS)}\n")
                 continue
             agent = new_agent
-            persona = extract_persona(persona_path(agent))
+            persona = system_instruction(agent)
             name = agent.capitalize()
             contents.clear()
             print(f"(switched to {name}, conversation reset)\n")
@@ -167,12 +221,12 @@ def main() -> None:
     token = access_token()
 
     if rest:
-        persona = extract_persona(persona_path(agent))
+        persona = system_instruction(agent)
         task = " ".join(rest)
         print(call_gemini(persona, [{"role": "user", "parts": [{"text": task}]}], token))
         return
     if not sys.stdin.isatty():
-        persona = extract_persona(persona_path(agent))
+        persona = system_instruction(agent)
         task = sys.stdin.read().strip()
         if not task:
             sys.exit("Empty task on stdin.")

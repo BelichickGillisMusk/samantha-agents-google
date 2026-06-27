@@ -114,6 +114,55 @@ The deploy command returns a URL like `https://agents-web-<hash>-uc.a.run.app`
 
 ---
 
+## Embed on bryanoneillgillis.com (the "Samantha box")
+
+Once `agents-web` is deployed and you have its URL — say
+`https://agents-web-xyz.us-central1.run.app` — embed it on the site as a
+floating chat panel:
+
+```html
+<!-- paste in your site footer or template -->
+<style>
+  #agents-launcher {
+    position: fixed; right: 20px; bottom: 20px; z-index: 9999;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: #0b0d12; color: #fff; border: 0; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25); font-size: 24px;
+  }
+  #agents-panel {
+    position: fixed; right: 20px; bottom: 90px; z-index: 9998;
+    width: min(380px, 92vw); height: min(640px, 80vh);
+    border: 1px solid #262a39; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    display: none; background: #0b0d12;
+  }
+  #agents-panel iframe { width: 100%; height: 100%; border: 0; display: block; }
+  #agents-panel.open { display: block; }
+</style>
+<button id="agents-launcher" aria-label="Open agents">💬</button>
+<div id="agents-panel" role="dialog" aria-label="Bryan's agents">
+  <iframe src="https://agents-web-xyz.us-central1.run.app/"
+          allow="microphone"></iframe>
+</div>
+<script>
+  document.getElementById('agents-launcher').addEventListener('click', () =>
+    document.getElementById('agents-panel').classList.toggle('open'));
+</script>
+```
+
+Two things to know:
+
+- **`allow="microphone"`** is required for the voice button to work inside the
+  iframe. Without it the mic prompt is silently denied.
+- **Cloud Run does not set `X-Frame-Options`** so the iframe loads fine from
+  any origin in v1. If you later add Cloud IAP or a CDN that *does* set
+  `X-Frame-Options: DENY`, you'll need a `frame-ancestors` CSP override.
+
+For Squarespace / Webflow / Wix: paste the snippet into the site's "code
+injection" or "custom HTML" footer slot.
+
+---
+
 ## Auth options
 
 | | When | Setup |
@@ -144,6 +193,41 @@ gcloud run deploy agents-web --project=samantha-493919 --region=us-central1 \
   --service-account="agents-web-sa@samantha-493919.iam.gserviceaccount.com" \
   --set-env-vars="GOOGLE_CLOUD_PROJECT=samantha-493919,VERTEX_AI_MODEL=gemini-2.5-pro"
 ```
+
+---
+
+## Knowledge grounding (GitHub READMEs + Drive + CLAUDE.md)
+
+Each agent's chat call now prepends every `.md` file under
+`projects/<agent>/persona/knowledge/` to the system prompt as a "reference
+documents" block — same wiring `chat.py` uses, so the web app and CLI stay
+in sync.
+
+Populate the knowledge dir with `scripts/sync_knowledge.py`:
+
+```bash
+# GitHub org READMEs (requires a PAT with repo:read on BelichickGillisMusk):
+GITHUB_TOKEN=ghp_... python3 scripts/sync_knowledge.py --skip-drive
+
+# Google Drive READMEs (uses gcloud ADC with Drive read scope):
+gcloud auth application-default login --scopes=\
+'https://www.googleapis.com/auth/drive.readonly,https://www.googleapis.com/auth/cloud-platform'
+python3 scripts/sync_knowledge.py --skip-github
+
+# Both, and re-copy this repo's CLAUDE.md into the knowledge dir:
+GITHUB_TOKEN=ghp_... python3 scripts/sync_knowledge.py
+```
+
+The script writes to three subdirs (idempotent — re-running overwrites):
+
+- `projects/samantha/persona/knowledge/synced-github/<repo>.md`
+- `projects/samantha/persona/knowledge/synced-drive/<title>-<id>.md`
+- `projects/samantha/persona/knowledge/synced-repo/CLAUDE.md`
+
+Hand-curated files in `persona/knowledge/` (anywhere else) are left alone.
+Disable knowledge entirely by setting `SAMANTHA_NO_KNOWLEDGE=1` on the
+container, or cap the prepended bytes with `SAMANTHA_MAX_KNOWLEDGE_BYTES`
+(default `800000` = ~200K tokens, well under Gemini 2.5 Pro's window).
 
 ---
 
