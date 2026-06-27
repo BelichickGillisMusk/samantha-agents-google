@@ -19,6 +19,8 @@ All information here is intended for editing and building these projects from **
 
 **Talk to any of the five right now** (no deploy needed): `./projects/samantha/chat.py --agent <samantha\|nora\|sloane\|audra\|vin>` from the repo root. Same CLI, five personas, one shared Vertex AI project (`samantha-493919`) until per-agent projects are stood up.
 
+**Web / mobile app**: [`app/`](app/BUILD.md) — Cloud Run + FastAPI backend that fronts all five agents; single-page PWA frontend (installable to phone home screen). Backed by the same persona files + Vertex AI Gemini 2.5 Pro. See [`app/BUILD.md`](app/BUILD.md) for build + deploy.
+
 > **Deploying a new agent?** Use the [`/process-optimization`](.claude/commands/process-optimization.md)
 > Claude Code agent — it scaffolds, configures, and submits a new agent following the
 > conventions above. See [`.claude/agents/process-optimization.md`](.claude/agents/process-optimization.md).
