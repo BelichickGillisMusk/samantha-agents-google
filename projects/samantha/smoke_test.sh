@@ -62,16 +62,40 @@ for var in "${REQUIRED_ENV[@]}"; do
     MISSING+=("env:$var")
   fi
 done
-if ! echo "$DESCRIBE_JSON" | grep -q "\"name\": \"$REQUIRED_SECRET_ENV\""; then
-  MISSING+=("secret-env:$REQUIRED_SECRET_ENV")
-fi
+# Confirm the secret env var is actually wired to Secret Manager
+# (a plain env var with the right name would still satisfy a naive name grep,
+# which is exactly the bug we want to catch — see Codex P2 on PR #10).
+SECRET_STATUS="$(echo "$DESCRIBE_JSON" | python3 -c '
+import json, sys
+target = sys.argv[1]
+data = json.load(sys.stdin)
+containers = (
+    data.get("spec", {}).get("template", {}).get("spec", {}).get("containers")
+    or data.get("template", {}).get("containers")
+    or []
+)
+for c in containers:
+    for env in (c.get("env") or []):
+        if env.get("name") != target:
+            continue
+        ref = (env.get("valueFrom") or env.get("valueSource") or {}).get("secretKeyRef")
+        if ref:
+            print("ok"); sys.exit()
+        print("plain"); sys.exit()
+print("absent")
+' "$REQUIRED_SECRET_ENV")"
+case "$SECRET_STATUS" in
+  ok) ;;
+  plain)  MISSING+=("secret-env:$REQUIRED_SECRET_ENV (present as plain env var, NOT bound to Secret Manager)") ;;
+  absent) MISSING+=("secret-env:$REQUIRED_SECRET_ENV") ;;
+esac
 
 if [[ ${#MISSING[@]} -gt 0 ]]; then
   red "  Missing bindings: ${MISSING[*]}"
   red "  Fix:"
   red "    gcloud run services update $SERVICE \\"
   red "      --project=$PROJECT --region=$REGION \\"
-  red "      --set-env-vars=\"GOOGLE_CLOUD_PROJECT=$PROJECT,VERTEX_AI_MODEL=gemini-1.5-pro\" \\"
+  red "      --set-env-vars=\"GOOGLE_CLOUD_PROJECT=$PROJECT,VERTEX_AI_MODEL=gemini-2.5-pro\" \\"
   red "      --set-secrets=\"SAMANTHA_APP_KEY=Samantha_App_Key:latest\""
   exit 3
 fi

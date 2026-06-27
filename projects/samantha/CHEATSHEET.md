@@ -50,7 +50,7 @@ gcloud builds submit --project=samantha-493919 --region=us-central1 --tag="$IMAG
 # 2. Deploy with env vars + secret bound (DON'T skip --set-secrets)
 gcloud run deploy samantha --project=samantha-493919 --region=us-central1 \
   --image="$IMAGE" --platform=managed --allow-unauthenticated --max-instances=10 \
-  --set-env-vars="GOOGLE_CLOUD_PROJECT=samantha-493919,VERTEX_AI_MODEL=gemini-1.5-pro" \
+  --set-env-vars="GOOGLE_CLOUD_PROJECT=samantha-493919,VERTEX_AI_MODEL=gemini-2.5-pro" \
   --set-secrets="SAMANTHA_APP_KEY=Samantha_App_Key:latest"
 
 # 3. Verify

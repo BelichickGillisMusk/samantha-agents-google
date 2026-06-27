@@ -37,7 +37,7 @@ AR_REGISTRY=us-central1-docker.pkg.dev
 AR_REPOSITORY=agents
 CLOUD_RUN_SERVICE=sloane
 VERTEX_AI_REGION=us-central1
-VERTEX_AI_MODEL=gemini-1.5-pro
+VERTEX_AI_MODEL=gemini-2.5-pro
 AGENT_BASE_URL=https://sloane-<hash>-uc.a.run.app
 ```
 
@@ -93,7 +93,7 @@ gcloud run deploy sloane \
   --platform=managed \
   --allow-unauthenticated \
   --max-instances=10 \
-  --set-env-vars="GOOGLE_CLOUD_PROJECT=sloane-agent,VERTEX_AI_MODEL=gemini-1.5-pro"
+  --set-env-vars="GOOGLE_CLOUD_PROJECT=sloane-agent,VERTEX_AI_MODEL=gemini-2.5-pro"
 ```
 
 ### Rollback to a previous revision

@@ -34,7 +34,7 @@ AGENTS = ("samantha", "nora", "sloane", "audra", "vin")
 
 PROJECT = os.environ.get("SAMANTHA_PROJECT", "samantha-493919")
 REGION = os.environ.get("SAMANTHA_REGION", "us-central1")
-MODEL = os.environ.get("SAMANTHA_MODEL", "gemini-1.5-pro")
+MODEL = os.environ.get("SAMANTHA_MODEL", "gemini-2.5-pro")
 PROJECTS_DIR = pathlib.Path(__file__).resolve().parent.parent
 
 

@@ -15,7 +15,7 @@ Every agent under `projects/<name>/` follows the **same** pattern. Mirror it exa
 - **GCP project:** `<name>-agent` · **Cloud Run service / image name:** `<name>` · **Region:** `us-central1`
   - **Samantha is the documented exception:** her project ID is `samantha-493919` (a legacy ID predating the convention), not `samantha-agent`. New agents still follow `<name>-agent`.
 - **Artifact Registry repo:** `agents` (host `us-central1-docker.pkg.dev`)
-- **Model:** `gemini-1.5-pro` via Vertex AI
+- **Model:** `gemini-2.5-pro` via Vertex AI
 - **Files:** `projects/<name>/BUILD.md`, `projects/<name>/persona/system_prompt.md`, `projects/<name>/persona/knowledge/README.md`
 - **Persona file:** the prompt MUST sit between `<!-- BEGIN SYSTEM PROMPT -->` and `<!-- END SYSTEM PROMPT -->` markers. Production reads only the text between those markers.
 - **README.md** has a roster table and a repository-structure block — add a row + entry for any new agent.
@@ -52,7 +52,7 @@ gcloud builds submit --project=<name>-agent --region=us-central1 --tag="$IMAGE"
 # Deploy to Cloud Run
 gcloud run deploy <name> --project=<name>-agent --region=us-central1 \
   --image="$IMAGE" --platform=managed --allow-unauthenticated --max-instances=10 \
-  --set-env-vars="GOOGLE_CLOUD_PROJECT=<name>-agent,VERTEX_AI_MODEL=gemini-1.5-pro"
+  --set-env-vars="GOOGLE_CLOUD_PROJECT=<name>-agent,VERTEX_AI_MODEL=gemini-2.5-pro"
 
 # Tail logs / describe service
 gcloud run services logs tail <name> --project=<name>-agent --region=us-central1

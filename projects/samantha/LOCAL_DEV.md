@@ -23,7 +23,7 @@ both backends. Everything else differs by design:
 
 | | Production | Local |
 |---|---|---|
-| **Model** | Gemini (`gemini-1.5-pro`) via Vertex AI | Open-weight model via Ollama (Llama 3 / Mistral) |
+| **Model** | Gemini (`gemini-2.5-pro`) via Vertex AI | Open-weight model via Ollama (Llama 3 / Mistral) |
 | **Runtime** | Cloud Run (managed, autoscaling) | Docker on your machine |
 | **Cost** | Per-token + Cloud Run | Free (your hardware) |
 
