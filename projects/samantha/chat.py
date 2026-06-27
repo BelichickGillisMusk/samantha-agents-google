@@ -47,11 +47,13 @@ def persona_path(agent: str) -> pathlib.Path:
 def extract_persona(path: pathlib.Path) -> str:
     if not path.exists():
         sys.exit(f"Persona file not found: {path}")
-    content = path.read_text()
+    content = path.read_text(encoding="utf-8")
     start, end = "<!-- BEGIN SYSTEM PROMPT -->", "<!-- END SYSTEM PROMPT -->"
     s, e = content.find(start), content.find(end)
     if s == -1 or e == -1:
         sys.exit(f"BEGIN/END SYSTEM PROMPT markers missing in {path}")
+    if e <= s:
+        sys.exit(f"END SYSTEM PROMPT appears before BEGIN in {path}")
     return content[s + len(start) : e].strip()
 
 

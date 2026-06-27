@@ -15,7 +15,7 @@ convention as Nora and Sloane.
 
 > **Talk to her right now without deploying:**
 > `./projects/samantha/chat.py --agent audra` (from the repo root). Same CLI
-> handles all four agents; see [`../samantha/BUILD.md`](../samantha/BUILD.md)
+> handles all five agents; see [`../samantha/BUILD.md`](../samantha/BUILD.md)
 > for the script details.
 
 ---

@@ -29,8 +29,13 @@ red()   { printf '\033[31m%s\033[0m\n' "$*" >&2; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
 bold()  { printf '\033[1m%s\033[0m\n' "$*"; }
 
-command -v gcloud >/dev/null 2>&1 || { red "gcloud not on PATH"; exit 1; }
-command -v curl   >/dev/null 2>&1 || { red "curl not on PATH";   exit 1; }
+command -v gcloud  >/dev/null 2>&1 || { red "gcloud not on PATH";  exit 1; }
+command -v curl    >/dev/null 2>&1 || { red "curl not on PATH";    exit 1; }
+command -v python3 >/dev/null 2>&1 || { red "python3 not on PATH (used for safe JSON escaping)"; exit 1; }
+
+ROOT_OUT="$(mktemp -t samantha_smoke_root.XXXXXX)"
+CHAT_OUT="$(mktemp -t samantha_smoke_chat.XXXXXX)"
+trap 'rm -f "$ROOT_OUT" "$CHAT_OUT"' EXIT
 
 bold "── 1. Looking up Cloud Run service ──"
 URL="$(gcloud run services describe "$SERVICE" \
@@ -73,9 +78,9 @@ fi
 green "  All required env + secret bindings present."
 
 bold "── 3. Probing service root (GET $URL/) ──"
-HTTP_CODE="$(curl -sS -o /tmp/samantha_smoke_root.out -w '%{http_code}' "$URL/" || true)"
+HTTP_CODE="$(curl -sS -o "$ROOT_OUT" -w '%{http_code}' "$URL/" || true)"
 echo "  HTTP $HTTP_CODE"
-head -c 400 /tmp/samantha_smoke_root.out; echo
+head -c 400 "$ROOT_OUT"; echo
 case "$HTTP_CODE" in
   2*|3*) green "  Service root is reachable." ;;
   4*|5*) red "  Service root returned $HTTP_CODE — check Cloud Run logs:"
@@ -98,14 +103,14 @@ TOKEN="$(gcloud auth print-identity-token 2>/dev/null || true)"
 AUTH_HEADER=()
 [[ -n "$TOKEN" ]] && AUTH_HEADER=(-H "Authorization: Bearer $TOKEN")
 
-HTTP_CODE="$(curl -sS -o /tmp/samantha_smoke_chat.out -w '%{http_code}' \
+HTTP_CODE="$(curl -sS -o "$CHAT_OUT" -w '%{http_code}' \
   -X POST \
   -H 'Content-Type: application/json' \
   "${AUTH_HEADER[@]}" \
   --data "$(printf '{"message":%s}' "$(printf '%s' "$TASK" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')")" \
   "$URL$CHAT_PATH" || true)"
 echo "  HTTP $HTTP_CODE"
-head -c 1500 /tmp/samantha_smoke_chat.out; echo
+head -c 1500 "$CHAT_OUT"; echo
 case "$HTTP_CODE" in
   2*) green ""; green "Samantha accepted the task. Goal: she's reachable for tasks."; exit 0 ;;
   4*|5*) red "  Task POST returned $HTTP_CODE — likely wrong CHAT_PATH or auth mode."
