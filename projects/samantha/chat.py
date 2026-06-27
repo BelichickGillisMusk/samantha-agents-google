@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Agent — talk-to-her CLI for Samantha, Nora, Sloane, and Audra.
+"""Agent — talk-to-her CLI for Samantha, Nora, Sloane, Audra, and Vin.
 
 Sends tasks directly to Vertex AI Gemini with the chosen agent's persona system
 prompt loaded from projects/<agent>/persona/system_prompt.md. Works WITHOUT
@@ -18,8 +18,8 @@ REPL commands: /reset clears memory · /exit (or Ctrl-D) quits · /agent <name>
 switches persona mid-session (memory is wiped — different agent, different
 context).
 
-Auth uses your gcloud login (gcloud auth print-access-token). All four agents
-currently call Vertex AI in samantha-493919 (one project, four personas) —
+Auth uses your gcloud login (gcloud auth print-access-token). All five agents
+currently call Vertex AI in samantha-493919 (one project, five personas) —
 override with SAMANTHA_PROJECT if you split them later.
 """
 import json
