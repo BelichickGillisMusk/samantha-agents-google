@@ -10,10 +10,13 @@ All information here is intended for editing and building these projects from **
 
 | Agent | GCP Project | Status | Docs |
 |-------|------------|--------|------|
-| Samantha | `samantha-493919` (legacy ID — does **not** follow the `<name>-agent` convention) | Active | [Build Info](projects/samantha/BUILD.md) · [Local Dev](projects/samantha/LOCAL_DEV.md) |
-| Nora | `nora-agent` | Active | [Build Info](projects/nora/BUILD.md) |
-| Sloane | `sloane-agent` | Active | [Build Info](projects/sloane/BUILD.md) |
-| Process-Optimization | `process-optimization-agent` | Active | [Build Info](projects/process-optimization/BUILD.md) |
+| **Samantha** — Google APIs (Gmail / Calendar / Drive) | `samantha-493919` (legacy ID — does **not** follow the `<name>-agent` convention) | Active | [Cheatsheet](projects/samantha/CHEATSHEET.md) · [Build Info](projects/samantha/BUILD.md) · [Local Dev](projects/samantha/LOCAL_DEV.md) |
+| **Nora** — Ops (website / Make.com / lead intake) | `nora-agent` | Persona live, deploy pending | [Build Info](projects/nora/BUILD.md) |
+| **Sloane** — Content & brand voice | `sloane-agent` | Persona live, deploy pending | [Build Info](projects/sloane/BUILD.md) |
+| **Audra** — Accounting & bookkeeping | `audra-agent` | Persona live, deploy pending | [Build Info](projects/audra/BUILD.md) |
+| Process-Optimization | `process-optimization-agent` | Active (meta-agent — scaffolds new agents) | [Build Info](projects/process-optimization/BUILD.md) |
+
+**Talk to any of the four right now** (no deploy needed): `./projects/samantha/chat.py --agent <samantha|nora|sloane|audra>` from the repo root. Same CLI, four personas, one shared Vertex AI project (`samantha-493919`) until per-agent projects are stood up.
 
 > **Deploying a new agent?** Use the [`/process-optimization`](.claude/commands/process-optimization.md)
 > Claude Code agent — it scaffolds, configures, and submits a new agent following the
@@ -57,9 +60,14 @@ samantha-agents-google/
     │   ├── docker-compose.yml  ← Local dev stack (not production)
     │   └── persona/            ← Shared system prompt + RAG docs (both backends)
     ├── nora/
-    │   └── BUILD.md     ← Nora agent build & deploy info
+    │   ├── BUILD.md            ← Nora agent build & deploy info
+    │   └── persona/            ← Nora system prompt + RAG docs
     ├── sloane/
-    │   └── BUILD.md     ← Sloane agent build & deploy info
+    │   ├── BUILD.md            ← Sloane agent build & deploy info
+    │   └── persona/            ← Sloane system prompt + RAG docs
+    ├── audra/
+    │   ├── BUILD.md            ← Audra agent build & deploy info
+    │   └── persona/            ← Audra system prompt + RAG docs
     └── process-optimization/
         ├── BUILD.md     ← Process-Optimization agent build & deploy info
         └── persona/     ← System prompt + RAG docs
