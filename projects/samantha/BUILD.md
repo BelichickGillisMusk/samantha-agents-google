@@ -44,7 +44,7 @@ AR_REGISTRY=us-central1-docker.pkg.dev
 AR_REPOSITORY=agents
 CLOUD_RUN_SERVICE=samantha
 VERTEX_AI_REGION=us-central1
-VERTEX_AI_MODEL=gemini-1.5-pro
+VERTEX_AI_MODEL=gemini-2.5-pro
 AGENT_BASE_URL=https://samantha-<hash>-uc.a.run.app
 ```
 
@@ -103,7 +103,7 @@ gcloud run deploy samantha \
   --platform=managed \
   --allow-unauthenticated \
   --max-instances=10 \
-  --set-env-vars="GOOGLE_CLOUD_PROJECT=samantha-493919,VERTEX_AI_MODEL=gemini-1.5-pro" \
+  --set-env-vars="GOOGLE_CLOUD_PROJECT=samantha-493919,VERTEX_AI_MODEL=gemini-2.5-pro" \
   --set-secrets="SAMANTHA_APP_KEY=Samantha_App_Key:latest"
 ```
 
@@ -134,7 +134,7 @@ echo "Draft a polite decline to the 9am meeting." | ./projects/samantha/chat.py
 
 `chat.py` reads `persona/system_prompt.md` (between the `BEGIN`/`END SYSTEM
 PROMPT` markers — same text production sends to Gemini), calls Vertex AI
-`gemini-1.5-pro` in `samantha-493919/us-central1`, and prints her reply. It
+`gemini-2.5-pro` in `samantha-493919/us-central1`, and prints her reply. It
 uses your gcloud login (`gcloud auth print-access-token`), not the
 `SAMANTHA_APP_KEY` secret — so it works the moment your account is
 authenticated, regardless of Cloud Run state. Override `SAMANTHA_PROJECT`,

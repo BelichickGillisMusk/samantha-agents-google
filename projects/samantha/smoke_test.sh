@@ -29,8 +29,13 @@ red()   { printf '\033[31m%s\033[0m\n' "$*" >&2; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
 bold()  { printf '\033[1m%s\033[0m\n' "$*"; }
 
-command -v gcloud >/dev/null 2>&1 || { red "gcloud not on PATH"; exit 1; }
-command -v curl   >/dev/null 2>&1 || { red "curl not on PATH";   exit 1; }
+command -v gcloud  >/dev/null 2>&1 || { red "gcloud not on PATH";  exit 1; }
+command -v curl    >/dev/null 2>&1 || { red "curl not on PATH";    exit 1; }
+command -v python3 >/dev/null 2>&1 || { red "python3 not on PATH (used for safe JSON escaping)"; exit 1; }
+
+ROOT_OUT="$(mktemp -t samantha_smoke_root.XXXXXX)"
+CHAT_OUT="$(mktemp -t samantha_smoke_chat.XXXXXX)"
+trap 'rm -f "$ROOT_OUT" "$CHAT_OUT"' EXIT
 
 bold "── 1. Looking up Cloud Run service ──"
 URL="$(gcloud run services describe "$SERVICE" \
@@ -57,25 +62,49 @@ for var in "${REQUIRED_ENV[@]}"; do
     MISSING+=("env:$var")
   fi
 done
-if ! echo "$DESCRIBE_JSON" | grep -q "\"name\": \"$REQUIRED_SECRET_ENV\""; then
-  MISSING+=("secret-env:$REQUIRED_SECRET_ENV")
-fi
+# Confirm the secret env var is actually wired to Secret Manager
+# (a plain env var with the right name would still satisfy a naive name grep,
+# which is exactly the bug we want to catch — see Codex P2 on PR #10).
+SECRET_STATUS="$(echo "$DESCRIBE_JSON" | python3 -c '
+import json, sys
+target = sys.argv[1]
+data = json.load(sys.stdin)
+containers = (
+    data.get("spec", {}).get("template", {}).get("spec", {}).get("containers")
+    or data.get("template", {}).get("containers")
+    or []
+)
+for c in containers:
+    for env in (c.get("env") or []):
+        if env.get("name") != target:
+            continue
+        ref = (env.get("valueFrom") or env.get("valueSource") or {}).get("secretKeyRef")
+        if ref:
+            print("ok"); sys.exit()
+        print("plain"); sys.exit()
+print("absent")
+' "$REQUIRED_SECRET_ENV")"
+case "$SECRET_STATUS" in
+  ok) ;;
+  plain)  MISSING+=("secret-env:$REQUIRED_SECRET_ENV (present as plain env var, NOT bound to Secret Manager)") ;;
+  absent) MISSING+=("secret-env:$REQUIRED_SECRET_ENV") ;;
+esac
 
 if [[ ${#MISSING[@]} -gt 0 ]]; then
   red "  Missing bindings: ${MISSING[*]}"
   red "  Fix:"
   red "    gcloud run services update $SERVICE \\"
   red "      --project=$PROJECT --region=$REGION \\"
-  red "      --set-env-vars=\"GOOGLE_CLOUD_PROJECT=$PROJECT,VERTEX_AI_MODEL=gemini-1.5-pro\" \\"
+  red "      --set-env-vars=\"GOOGLE_CLOUD_PROJECT=$PROJECT,VERTEX_AI_MODEL=gemini-2.5-pro\" \\"
   red "      --set-secrets=\"SAMANTHA_APP_KEY=Samantha_App_Key:latest\""
   exit 3
 fi
 green "  All required env + secret bindings present."
 
 bold "── 3. Probing service root (GET $URL/) ──"
-HTTP_CODE="$(curl -sS -o /tmp/samantha_smoke_root.out -w '%{http_code}' "$URL/" || true)"
+HTTP_CODE="$(curl -sS -o "$ROOT_OUT" -w '%{http_code}' "$URL/" || true)"
 echo "  HTTP $HTTP_CODE"
-head -c 400 /tmp/samantha_smoke_root.out; echo
+head -c 400 "$ROOT_OUT"; echo
 case "$HTTP_CODE" in
   2*|3*) green "  Service root is reachable." ;;
   4*|5*) red "  Service root returned $HTTP_CODE — check Cloud Run logs:"
@@ -98,14 +127,14 @@ TOKEN="$(gcloud auth print-identity-token 2>/dev/null || true)"
 AUTH_HEADER=()
 [[ -n "$TOKEN" ]] && AUTH_HEADER=(-H "Authorization: Bearer $TOKEN")
 
-HTTP_CODE="$(curl -sS -o /tmp/samantha_smoke_chat.out -w '%{http_code}' \
+HTTP_CODE="$(curl -sS -o "$CHAT_OUT" -w '%{http_code}' \
   -X POST \
   -H 'Content-Type: application/json' \
   "${AUTH_HEADER[@]}" \
   --data "$(printf '{"message":%s}' "$(printf '%s' "$TASK" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')")" \
   "$URL$CHAT_PATH" || true)"
 echo "  HTTP $HTTP_CODE"
-head -c 1500 /tmp/samantha_smoke_chat.out; echo
+head -c 1500 "$CHAT_OUT"; echo
 case "$HTTP_CODE" in
   2*) green ""; green "Samantha accepted the task. Goal: she's reachable for tasks."; exit 0 ;;
   4*|5*) red "  Task POST returned $HTTP_CODE — likely wrong CHAT_PATH or auth mode."

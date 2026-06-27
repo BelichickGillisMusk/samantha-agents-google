@@ -30,7 +30,7 @@ Conventions every agent MUST follow:
 
 - **GCP project:** `<name>-agent`  ·  **Cloud Run service / image:** `<name>`  ·
   **Region:** `us-central1`  ·  **Artifact Registry repo:** `agents`  ·
-  **Model:** `gemini-1.5-pro` (Vertex AI).
+  **Model:** `gemini-2.5-pro` (Vertex AI).
 - Lives at `projects/<name>/BUILD.md` with a `persona/system_prompt.md` whose prompt
   sits between `<!-- BEGIN SYSTEM PROMPT -->` / `<!-- END SYSTEM PROMPT -->` markers,
   and a `persona/knowledge/README.md` for RAG docs.

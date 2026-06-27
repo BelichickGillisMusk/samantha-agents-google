@@ -10,10 +10,14 @@ All information here is intended for editing and building these projects from **
 
 | Agent | GCP Project | Status | Docs |
 |-------|------------|--------|------|
-| Samantha | `samantha-493919` (legacy ID — does **not** follow the `<name>-agent` convention) | Active | [Build Info](projects/samantha/BUILD.md) · [Local Dev](projects/samantha/LOCAL_DEV.md) |
-| Nora | `nora-agent` | Active | [Build Info](projects/nora/BUILD.md) |
-| Sloane | `sloane-agent` | Active | [Build Info](projects/sloane/BUILD.md) |
-| Process-Optimization | `process-optimization-agent` | Active | [Build Info](projects/process-optimization/BUILD.md) |
+| **Samantha** — Google APIs (Gmail / Calendar / Drive) | `samantha-493919` (legacy ID — does **not** follow the `<name>-agent` convention) | Active | [Cheatsheet](projects/samantha/CHEATSHEET.md) · [Build Info](projects/samantha/BUILD.md) · [Local Dev](projects/samantha/LOCAL_DEV.md) |
+| **Nora** — Ops (website / Make.com / lead intake) | `nora-agent` | Persona live, deploy pending | [Build Info](projects/nora/BUILD.md) |
+| **Sloane** — Content & brand voice | `sloane-agent` | Persona live, deploy pending | [Build Info](projects/sloane/BUILD.md) |
+| **Audra** — Accounting & bookkeeping | `audra-agent` | Persona live, deploy pending | [Build Info](projects/audra/BUILD.md) |
+| **Vin** — Site infra (Cloudflare + GitHub) | `vin-agent` | Persona live, deploy + connectors pending | [Build Info](projects/vin/BUILD.md) |
+| Process-Optimization | `process-optimization-agent` | Active (meta-agent — scaffolds new agents) | [Build Info](projects/process-optimization/BUILD.md) |
+
+**Talk to any of the five right now** (no deploy needed): `./projects/samantha/chat.py --agent <samantha\|nora\|sloane\|audra\|vin>` from the repo root. Same CLI, five personas, one shared Vertex AI project (`samantha-493919`) until per-agent projects are stood up.
 
 > **Deploying a new agent?** Use the [`/process-optimization`](.claude/commands/process-optimization.md)
 > Claude Code agent — it scaffolds, configures, and submits a new agent following the

@@ -2,3 +2,7 @@
 # These hold local models, chats, and uploaded documents — never commit them.
 /ollama/
 /open-webui/
+
+# Python bytecode (chat.py is module-importable for tests)
+__pycache__/
+*.pyc
