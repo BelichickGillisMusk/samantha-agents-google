@@ -21,6 +21,8 @@ Usage:
   GITHUB_ORG=BelichickGillisMusk GITHUB_TOKEN=ghp_... python3 scripts/sync_knowledge.py
   python3 scripts/sync_knowledge.py --skip-drive       # if you don't have Drive ADC
   python3 scripts/sync_knowledge.py --skip-github      # Drive only
+  python3 scripts/sync_knowledge.py --since 2026-04-01 # default — recent tech stack
+  python3 scripts/sync_knowledge.py --since 2026-01-01 # broader history if needed
 
 Idempotent: re-runs overwrite existing files in the synced-* directories. Files
 NOT in synced-* are left alone (those are hand-curated knowledge).
@@ -92,18 +94,30 @@ def slugify(s: str) -> str:
     return _SLUG_RE.sub("-", s).strip("-").lower() or "untitled"
 
 
-def sync_github(org: str, token: str | None) -> int:
+def sync_github(org: str, token: str | None, since_iso: str) -> int:
     GITHUB_DIR.mkdir(parents=True, exist_ok=True)
     repos = list_org_repos(org, token)
-    print(f"[github] {len(repos)} repos in {org}", file=sys.stderr)
-    written = 0
+    total = len(repos)
+    # Filter: skip archived, auto-named Cloudflare stubs, and anything not
+    # pushed since `since_iso`. `pushed_at` from the GitHub API is RFC 3339
+    # UTC and string-comparable (lexicographic == chronological).
+    kept = []
     for r in repos:
         if r.get("archived"):
             continue
         name = r["name"]
-        # Skip Cloudflare auto-named throwaways and obvious test repos
         if re.fullmatch(r"[a-z]+-[a-z]+-\d+|1111", name.lower()):
             continue
+        if (r.get("pushed_at") or r.get("updated_at") or "") < since_iso:
+            continue
+        kept.append(r)
+    print(
+        f"[github] {total} repos in {org}; {len(kept)} active since {since_iso[:10]}",
+        file=sys.stderr,
+    )
+    written = 0
+    for r in kept:
+        name = r["name"]
         try:
             content = fetch_readme(org, name, token)
         except urllib.error.HTTPError as e:
@@ -116,7 +130,7 @@ def sync_github(org: str, token: str | None) -> int:
             continue
         out = GITHUB_DIR / f"{slugify(name)}.md"
         out.write_text(
-            f"<!-- source: github.com/{org}/{name} -->\n"
+            f"<!-- source: github.com/{org}/{name} · pushed {r.get('pushed_at','?')} -->\n"
             f"# {name}\n\n{content.strip()}\n",
             encoding="utf-8",
         )
@@ -125,8 +139,12 @@ def sync_github(org: str, token: str | None) -> int:
     return written
 
 
-def sync_drive() -> int:
-    """Use ADC to list Drive markdown files titled README* and write content."""
+def sync_drive(since_iso: str) -> int:
+    """Use ADC to list Drive markdown files titled README* and write content.
+
+    `since_iso` is an RFC 3339 UTC timestamp. Drive's `modifiedTime > '...'`
+    operator filters server-side.
+    """
     try:
         from google.auth.transport.requests import AuthorizedSession
         import google.auth
@@ -145,8 +163,10 @@ def sync_drive() -> int:
     q = (
         "(title contains 'README' or title contains 'readme') "
         "and (mimeType = 'text/markdown' or mimeType = 'text/plain') "
+        f"and modifiedTime > '{since_iso}' "
         "and trashed = false"
     )
+    print(f"[drive] filtering README*.md modified since {since_iso[:10]}", file=sys.stderr)
     written = 0
     page_token = None
     while True:
@@ -209,19 +229,29 @@ def sync_repo_self() -> int:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--org", default=os.environ.get("GITHUB_ORG", "BelichickGillisMusk"))
+    ap.add_argument(
+        "--since",
+        default=os.environ.get("SYNC_SINCE", "2026-04-01T00:00:00Z"),
+        help=(
+            "Only sync READMEs from repos pushed (or Drive files modified) at or "
+            "after this RFC 3339 UTC timestamp. Default 2026-04-01 — the cutoff "
+            "where the norcalcarbmobile stack and team tech-capability shifted."
+        ),
+    )
     ap.add_argument("--skip-github", action="store_true")
     ap.add_argument("--skip-drive", action="store_true")
     ap.add_argument("--skip-self", action="store_true")
     args = ap.parse_args()
 
+    since = args.since if "T" in args.since else f"{args.since}T00:00:00Z"
     total = 0
     if not args.skip_github:
-        total += sync_github(args.org, os.environ.get("GITHUB_TOKEN"))
+        total += sync_github(args.org, os.environ.get("GITHUB_TOKEN"), since)
     if not args.skip_drive:
-        total += sync_drive()
+        total += sync_drive(since)
     if not args.skip_self:
         total += sync_repo_self()
-    print(f"synced {total} files into {KNOWLEDGE_DIR.relative_to(REPO_ROOT)}", file=sys.stderr)
+    print(f"synced {total} files into {KNOWLEDGE_DIR.relative_to(REPO_ROOT)} (since {since[:10]})", file=sys.stderr)
 
 
 if __name__ == "__main__":

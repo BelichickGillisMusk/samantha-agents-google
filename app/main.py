@@ -32,21 +32,41 @@ sys.path.insert(0, str(REPO_ROOT / "projects" / "samantha"))
 import chat  # noqa: E402 — reuses extract_persona, persona_path, AGENTS
 
 PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "samantha-493919")
-REGION = os.environ.get("GOOGLE_CLOUD_REGION", "us-central1")
+# Prefer VERTEX_AI_REGION (the repo's documented env name) so Cloud Run region
+# and Vertex region can differ; fall back to GOOGLE_CLOUD_REGION then default.
+REGION = (
+    os.environ.get("VERTEX_AI_REGION")
+    or os.environ.get("GOOGLE_CLOUD_REGION")
+    or "us-central1"
+)
 MODEL = os.environ.get("VERTEX_AI_MODEL", "gemini-2.5-pro")
 STATIC_DIR = pathlib.Path(__file__).parent / "static"
 
+# CORS allowlist for cross-origin embeds (e.g. bryanoneillgillis.com). Comma-
+# separated; default empty -> CORS middleware NOT installed, so any third-party
+# site cannot use this unauthenticated service as a free model proxy.
+CORS_ALLOW_ORIGINS = [
+    o.strip() for o in os.environ.get("CORS_ALLOW_ORIGINS", "").split(",") if o.strip()
+]
+
 app = FastAPI(title="bryanoneillgillis agents", version="1.0")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Same-origin (the PWA frontend served from /) doesn't need CORS. Only enable
+# the middleware if the operator explicitly lists allowed origins — avoids
+# the abuse risk of an open unauthenticated model proxy.
+if CORS_ALLOW_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ALLOW_ORIGINS,
+        allow_methods=["POST", "GET"],
+        allow_headers=["Content-Type", "Authorization"],
+    )
+
+
+VALID_ROLES = {"user", "model"}
 
 
 class Turn(BaseModel):
-    role: str  # "user" or "model"
+    role: str  # must be "user" or "model" — validated in chat_endpoint
     text: str
 
 
@@ -83,9 +103,13 @@ def chat_endpoint(req: ChatRequest) -> dict:
         raise HTTPException(400, "Empty message")
 
     persona = chat.system_instruction(req.agent)
-    contents = [
-        {"role": t.role, "parts": [{"text": t.text}]} for t in req.history
-    ]
+    contents = []
+    for i, t in enumerate(req.history):
+        if t.role not in VALID_ROLES:
+            raise HTTPException(
+                400, f"history[{i}].role must be one of {sorted(VALID_ROLES)}; got {t.role!r}"
+            )
+        contents.append({"role": t.role, "parts": [{"text": t.text}]})
     contents.append({"role": "user", "parts": [{"text": req.message}]})
 
     payload = {

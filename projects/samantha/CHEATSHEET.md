@@ -8,7 +8,7 @@ for fast scanning, not exhaustive — full detail in [`BUILD.md`](BUILD.md) and
 
 ## What she is (in 5 lines)
 
-- **Model:** Vertex AI **Gemini 1.5 Pro**, hosted in GCP project `samantha-493919` (us-central1).
+- **Model:** Vertex AI **Gemini 2.5 Pro** (`gemini-2.5-pro`), hosted in GCP project `samantha-493919` (us-central1). 1.5 Pro was retired by Google Cloud earlier this year — don't roll back to it.
 - **Persona:** [`persona/system_prompt.md`](persona/system_prompt.md), between the `BEGIN`/`END SYSTEM PROMPT` markers. One file feeds both production and local dev.
 - **Production hosting:** Cloud Run service named `samantha`, deployed from a container image in Artifact Registry.
 - **Local talk-to-her CLI:** [`chat.py`](chat.py) — Vertex AI direct, no Cloud Run required.

@@ -150,10 +150,18 @@ floating chat panel:
 </script>
 ```
 
-Two things to know:
+Three things to know:
 
 - **`allow="microphone"`** is required for the voice button to work inside the
   iframe. Without it the mic prompt is silently denied.
+- **CORS is off by default.** The iframe approach above works because the
+  PWA's `fetch('/api/chat')` calls are same-origin (the iframe loaded from
+  `agents-web-xyz.run.app`, the fetch goes to the same host). If you instead
+  drop the iframe and call `/api/chat` directly from bryanoneillgillis.com JS,
+  set the deploy-time env var
+  `CORS_ALLOW_ORIGINS=https://bryanoneillgillis.com` so the backend whitelists
+  that origin (intentionally not `*` — open CORS on an unauthenticated model
+  proxy invites cost abuse from any random site).
 - **Cloud Run does not set `X-Frame-Options`** so the iframe loads fine from
   any origin in v1. If you later add Cloud IAP or a CDN that *does* set
   `X-Frame-Options: DENY`, you'll need a `frame-ancestors` CSP override.
@@ -203,7 +211,11 @@ Each agent's chat call now prepends every `.md` file under
 documents" block — same wiring `chat.py` uses, so the web app and CLI stay
 in sync.
 
-Populate the knowledge dir with `scripts/sync_knowledge.py`:
+Populate the knowledge dir with `scripts/sync_knowledge.py`. By default it
+only pulls READMEs from repos / Drive files touched **since 2026-04-01** —
+the cutoff where the norcalcarbmobile stack and overall team tech-capability
+shifted. Older docs would just confuse the agents about the current state of
+the world.
 
 ```bash
 # GitHub org READMEs (requires a PAT with repo:read on BelichickGillisMusk):
@@ -216,6 +228,10 @@ python3 scripts/sync_knowledge.py --skip-github
 
 # Both, and re-copy this repo's CLAUDE.md into the knowledge dir:
 GITHUB_TOKEN=ghp_... python3 scripts/sync_knowledge.py
+
+# Override the date cutoff:
+python3 scripts/sync_knowledge.py --since 2026-01-01    # broader history
+python3 scripts/sync_knowledge.py --since 2026-06-01    # last month only
 ```
 
 The script writes to three subdirs (idempotent — re-running overwrites):
