@@ -56,16 +56,32 @@ samantha-agents-google/
 │   │   └── process-optimization.md   ← Agent that deploys new agents
 │   └── commands/
 │       └── process-optimization.md   ← /process-optimization slash command
+├── app/
+│   ├── BUILD.md         ← Web app build & deploy info (Cloud Run + FastAPI)
+│   ├── Dockerfile       ← Container image for the web app
+│   ├── main.py          ← FastAPI backend (fronts all five agents)
+│   ├── requirements.txt
+│   └── static/          ← Single-page PWA frontend (installable)
 └── projects/
     ├── samantha/
     │   ├── BUILD.md            ← Samantha agent build & deploy info (GCP)
+    │   ├── CHEATSHEET.md       ← One-page quick reference
     │   ├── LOCAL_DEV.md        ← Local Ollama + Open WebUI dev harness
+    │   ├── chat.py             ← Multi-agent CLI (all five personas, no deploy needed)
     │   ├── docker-compose.yml  ← Local dev stack (not production)
     │   └── persona/            ← Shared system prompt + RAG docs (both backends)
     ├── nora/
-    │   └── BUILD.md     ← Nora agent build & deploy info
+    │   ├── BUILD.md     ← Nora agent build & deploy info
+    │   └── persona/     ← System prompt + RAG docs
     ├── sloane/
-    │   └── BUILD.md     ← Sloane agent build & deploy info
+    │   ├── BUILD.md     ← Sloane agent build & deploy info
+    │   └── persona/     ← System prompt + RAG docs
+    ├── audra/
+    │   ├── BUILD.md     ← Audra agent build & deploy info
+    │   └── persona/     ← System prompt + RAG docs
+    ├── vin/
+    │   ├── BUILD.md     ← Vin agent build & deploy info
+    │   └── persona/     ← System prompt + RAG docs
     └── process-optimization/
         ├── BUILD.md     ← Process-Optimization agent build & deploy info
         └── persona/     ← System prompt + RAG docs
