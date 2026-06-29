@@ -42,7 +42,10 @@
     .msg { max-width: 100%; padding: 11px 14px; border-radius: 14px; margin: 6px 0; white-space: pre-wrap; word-wrap: break-word; }
     .msg.user { background: #1e2a44; align-self: flex-end; }
     .msg.model { background: var(--panel); border: 1px solid var(--line); }
-    .msg .who { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+    .msg .who { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+    button.speak { background: none; border: 0; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; filter: grayscale(.4); opacity: .8; }
+    button.speak:hover { filter: none; opacity: 1; }
+    button.speak.speaking { filter: none; opacity: 1; }
     .thread { display: flex; flex-direction: column; gap: 2px; }
     .typing { color: var(--muted); font-style: italic; padding: 8px 14px; }
     footer { border-top: 1px solid var(--line); padding: 10px 12px 14px; background: var(--bg); }
@@ -86,7 +89,7 @@
   <main><div class="thread" id="thread"></div></main>
   <footer>
     <div class="slash-hint">
-      <code>/agent vin</code> switch · <code>/reset</code> clear memory · <code>/help</code> commands · 🎙 voice
+      <code>/agent vin</code> switch · <code>/reset</code> clear memory · <code>/help</code> commands · 🎙 dictate · 🔊 hear reply
     </div>
     <form class="composer" id="composer">
       <textarea id="input" placeholder="Type a task or / for commands…" rows="1" autocomplete="off"></textarea>
@@ -116,6 +119,7 @@
     const AGENT_NAMES = Object.keys(AGENT_INFO);
 
     function setAgent(name) {
+      if (TTS_OK) speechSynthesis.cancel();
       state.agent = name;
       state.history = [];
       thread.innerHTML = "";
@@ -126,12 +130,23 @@
       input.focus();
     }
 
-    function pushMsg(role, text) {
+    function pushMsg(role, text, opts = {}) {
       const div = document.createElement("div");
       div.className = "msg " + (role === "user" ? "user" : "model");
       const who = document.createElement("div");
       who.className = "who";
-      who.textContent = role === "user" ? "you" : state.agent;
+      const label = document.createElement("span");
+      label.textContent = role === "user" ? "you" : state.agent;
+      who.appendChild(label);
+      // Read-aloud button on agent replies (skip system notices / errors).
+      if (role === "model" && opts.speak !== false && TTS_OK) {
+        const agent = state.agent;
+        const spk = document.createElement("button");
+        spk.type = "button"; spk.className = "speak";
+        spk.title = "Read aloud"; spk.textContent = "🔊";
+        spk.addEventListener("click", () => speakToggle(text, agent, spk));
+        who.appendChild(spk);
+      }
       const body = document.createElement("div");
       body.textContent = text;
       div.appendChild(who); div.appendChild(body);
@@ -161,7 +176,7 @@
         state.history.push({ role: "model", text: data.reply });
       } catch (e) {
         typing.remove();
-        const m = pushMsg("model", "Error: " + e.message);
+        const m = pushMsg("model", "Error: " + e.message, { speak: false });
         m.classList.add("err");
       } finally {
         state.busy = false; sendBtn.disabled = false;
@@ -178,13 +193,16 @@
           "  /samantha … /vin   shorthand for /agent",
           "  /reset            clear conversation memory",
           "  /help             this message",
-          "Voice: tap 🎙 to dictate (Chrome / Safari).",
-        ].join("\n"));
+          "Voice in:  tap 🎙 to dictate (Chrome / Safari).",
+          "Voice out: tap 🔊 on any reply to hear it (women's voices for",
+          "           Samantha/Nora/Sloane/Audra, a man's voice for Vin).",
+        ].join("\n"), { speak: false });
         return true;
       }
       if (cmd === "/reset") {
+        if (TTS_OK) speechSynthesis.cancel();
         state.history = []; thread.innerHTML = "";
-        pushMsg("model", "(conversation reset)");
+        pushMsg("model", "(conversation reset)", { speak: false });
         return true;
       }
       const agentSwitch = cmd.match(/^\/agent\s+(\w+)$/i);
@@ -220,6 +238,7 @@
       input.style.height = Math.min(160, input.scrollHeight) + "px";
     });
     resetBtn.addEventListener("click", () => {
+      if (TTS_OK) speechSynthesis.cancel();
       state.history = []; thread.innerHTML = "";
       input.focus();
     });
@@ -238,6 +257,61 @@
       });
       setAgent("samantha");
     });
+
+    // ── Voice output (text-to-speech) via Web Speech API ──────────────────
+    // Each agent reads its replies in a gender-matched voice. Where the browser
+    // exposes no distinctly-gendered voice, a pitch offset keeps women's and
+    // men's voices distinguishable.
+    const TTS_OK = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+    const AGENT_GENDER = { samantha: "female", nora: "female", sloane: "female", audra: "female", vin: "male" };
+    const genderOf = (a) => AGENT_GENDER[a] || "female";
+    // Name hints (lowercase) for common platform voices. "male"/"female" are
+    // matched separately below to avoid "female" matching the "male" substring.
+    const FEMALE_HINTS = ["samantha","victoria","karen","tessa","zira","susan","allison","ava","serena","fiona","moira","catherine","kate","jenny","aria","joanna","salli","kendra"];
+    const MALE_HINTS = ["daniel","alex","fred","aaron","david","tom","oliver","arthur","rishi","reed","mark","guy","matthew","brian","george","james"];
+    let _voices = [];
+    function cachedVoices() {
+      const vs = TTS_OK ? speechSynthesis.getVoices() : [];
+      if (vs && vs.length) _voices = vs;
+      return _voices;
+    }
+    function voiceGender(name) {
+      const n = name.toLowerCase();
+      if (n.includes("female") || n.includes("woman")) return "female";
+      if (n.includes("male") || n.includes("man")) return "male"; // after the female check
+      if (FEMALE_HINTS.some(h => n.includes(h))) return "female";
+      if (MALE_HINTS.some(h => n.includes(h))) return "male";
+      return null;
+    }
+    function pickVoice(gender) {
+      const en = cachedVoices().filter(v => /^en/i.test(v.lang));
+      if (!en.length) return null;
+      return en.find(v => voiceGender(v.name) === gender && /en[-_]us/i.test(v.lang))
+          || en.find(v => voiceGender(v.name) === gender)
+          || en.find(v => /en[-_]us/i.test(v.lang))
+          || en[0];
+    }
+    function speakToggle(text, agent, btn) {
+      if (!TTS_OK) return;
+      const wasSpeaking = btn.dataset.speaking === "1";
+      speechSynthesis.cancel(); // stop any in-flight utterance (and reset its button via onend)
+      if (wasSpeaking) return;  // tapping the active button just stops
+      const gender = genderOf(agent);
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "en-US";
+      const v = pickVoice(gender);
+      if (v) u.voice = v;
+      u.rate = 1;
+      u.pitch = gender === "male" ? 0.8 : 1.1; // fallback differentiation
+      btn.dataset.speaking = "1"; btn.textContent = "⏹"; btn.classList.add("speaking");
+      const done = () => { btn.dataset.speaking = ""; btn.textContent = "🔊"; btn.classList.remove("speaking"); };
+      u.onend = done; u.onerror = done;
+      speechSynthesis.speak(u);
+    }
+    if (TTS_OK) {
+      cachedVoices();
+      speechSynthesis.onvoiceschanged = cachedVoices;
+    }
 
     // Voice input via Web Speech API (Chrome / Safari).
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
