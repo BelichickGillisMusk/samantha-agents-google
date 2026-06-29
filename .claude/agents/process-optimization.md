@@ -28,9 +28,13 @@ Before doing anything, read the existing agents to mirror them exactly:
 
 Conventions every agent MUST follow:
 
-- **GCP project:** `<name>-agent`  ·  **Cloud Run service / image:** `<name>`  ·
-  **Region:** `us-central1`  ·  **Artifact Registry repo:** `agents`  ·
-  **Model:** `gemini-2.5-pro` (Vertex AI).
+- **GCP project:** the shared `samantha-493919` Vertex AI project — the same one
+  `app/` and `chat.py` use. Do **NOT** assume a per-agent `<name>-agent` project
+  exists: those projects have not been stood up, and any `gcloud`/Vertex call
+  against one fails with GCP **"Consumer invalid"**. Only use a dedicated
+  `<name>-agent` project if the user has explicitly created it first.
+- **Cloud Run service / image:** `<name>`  ·  **Region:** `us-central1`  ·
+  **Artifact Registry repo:** `agents`  ·  **Model:** `gemini-2.5-pro` (Vertex AI).
 - Lives at `projects/<name>/BUILD.md` with a `persona/system_prompt.md` whose prompt
   sits between `<!-- BEGIN SYSTEM PROMPT -->` / `<!-- END SYSTEM PROMPT -->` markers,
   and a `persona/knowledge/README.md` for RAG docs.
@@ -44,8 +48,9 @@ When asked to deploy/add an agent named `<name>`:
    intent. If any is missing and can't be inferred, ask once, then proceed.
 2. **Scaffold from the template.** Create `projects/<name>/BUILD.md`,
    `persona/system_prompt.md`, and `persona/knowledge/README.md` by copying the
-   Samantha pattern and substituting `<name>`, `<name>-agent`, and the persona text.
-   Do not invent steps that aren't in the existing BUILD.md files.
+   Samantha pattern and substituting `<name>`, the shared project `samantha-493919`,
+   and the persona text. Do not invent steps that aren't in the existing BUILD.md
+   files, and do not introduce a `<name>-agent` project that hasn't been created.
 3. **Wire it into the repo.** Add the roster row and structure entry in `README.md`.
 4. **Validate locally (no GCP calls unless asked):**
    - `grep -r "<name>" projects/<name>` to confirm no leftover template tokens

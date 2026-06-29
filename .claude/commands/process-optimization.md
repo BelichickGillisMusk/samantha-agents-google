@@ -14,8 +14,9 @@ Steps:
 1. Read the existing agents under `projects/` and the README roster to mirror the
    established pattern exactly.
 2. Scaffold `projects/<name>/BUILD.md`, `persona/system_prompt.md`, and
-   `persona/knowledge/README.md`, substituting the agent name, GCP project
-   (`<name>-agent`), Cloud Run service (`<name>`), and persona.
+   `persona/knowledge/README.md`, substituting the agent name, the shared GCP
+   project (`samantha-493919` — do not invent a `<name>-agent` project, which would
+   cause GCP "Consumer invalid"), Cloud Run service (`<name>`), and persona.
 3. Wire the new agent into `README.md` (roster table + repository-structure block).
 4. Validate locally: grep for leftover template tokens; validate any added YAML.
 5. Only touch GCP (Cloud Build / `gcloud run deploy`) if the user explicitly

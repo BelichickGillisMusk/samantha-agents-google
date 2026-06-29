@@ -1,8 +1,13 @@
 # Process-Optimization Agent — Build & Deploy Info
 
-> **GCP Project ID:** `process-optimization-agent`
+> **GCP Project ID:** `samantha-493919` (shared — the repo runs all agents in this
+> one Vertex AI project until per-agent projects are stood up; see the root README)
 > **Cloud Run Service:** `process-optimization`
 > **Region:** `us-central1`
+
+> ⚠️ Do **not** use a `process-optimization-agent` project — it does not exist and
+> any `gcloud`/Vertex call against it fails with GCP "Consumer invalid". Use
+> `samantha-493919`, matching [`app/BUILD.md`](../../app/BUILD.md) and `chat.py`.
 
 ---
 
@@ -27,7 +32,7 @@ Complete the one-time steps in [SETUP.md](../../SETUP.md) first, then:
 
 ```bash
 # Set the active project
-gcloud config set project process-optimization-agent
+gcloud config set project samantha-493919
 
 # Confirm you are targeting the right project
 gcloud config get project
@@ -40,7 +45,7 @@ gcloud config get project
 Copy the root `.env.example` and set these Process-Optimization-specific values:
 
 ```dotenv
-GOOGLE_CLOUD_PROJECT=process-optimization-agent
+GOOGLE_CLOUD_PROJECT=samantha-493919
 GOOGLE_CLOUD_REGION=us-central1
 AR_REGISTRY=us-central1-docker.pkg.dev
 AR_REPOSITORY=agents
@@ -58,7 +63,7 @@ AGENT_BASE_URL=https://process-optimization-<hash>-uc.a.run.app
 
 ```bash
 # From the repo root (or the process-optimization service source directory)
-IMAGE="us-central1-docker.pkg.dev/process-optimization-agent/agents/process-optimization:$(git rev-parse --short HEAD)"
+IMAGE="us-central1-docker.pkg.dev/samantha-493919/agents/process-optimization:$(git rev-parse --short HEAD)"
 
 docker build -t "$IMAGE" .
 ```
@@ -67,7 +72,7 @@ docker build -t "$IMAGE" .
 
 ```bash
 gcloud builds submit \
-  --project=process-optimization-agent \
+  --project=samantha-493919 \
   --region=us-central1 \
   --tag="$IMAGE"
 ```
@@ -98,24 +103,24 @@ The agent is available at <http://localhost:8080>.
 
 ```bash
 gcloud run deploy process-optimization \
-  --project=process-optimization-agent \
+  --project=samantha-493919 \
   --region=us-central1 \
   --image="$IMAGE" \
   --platform=managed \
   --allow-unauthenticated \
   --max-instances=10 \
-  --set-env-vars="GOOGLE_CLOUD_PROJECT=process-optimization-agent,VERTEX_AI_MODEL=gemini-2.5-pro"
+  --set-env-vars="GOOGLE_CLOUD_PROJECT=samantha-493919,VERTEX_AI_MODEL=gemini-2.5-pro"
 ```
 
 ### Rollback to a previous revision
 
 ```bash
 # List revisions
-gcloud run revisions list --service=process-optimization --project=process-optimization-agent --region=us-central1
+gcloud run revisions list --service=process-optimization --project=samantha-493919 --region=us-central1
 
 # Roll traffic back to a specific revision
 gcloud run services update-traffic process-optimization \
-  --project=process-optimization-agent \
+  --project=samantha-493919 \
   --region=us-central1 \
   --to-revisions=process-optimization-00010-abc=100
 ```
@@ -142,12 +147,12 @@ Process-Optimization reads secrets from **Secret Manager**. Add or update a secr
 ```bash
 # Create a new secret
 echo -n "my-secret-value" | gcloud secrets create MY_SECRET_NAME \
-  --project=process-optimization-agent \
+  --project=samantha-493919 \
   --data-file=-
 
 # Update an existing secret's value
 echo -n "new-value" | gcloud secrets versions add MY_SECRET_NAME \
-  --project=process-optimization-agent \
+  --project=samantha-493919 \
   --data-file=-
 ```
 
@@ -158,18 +163,18 @@ echo -n "new-value" | gcloud secrets versions add MY_SECRET_NAME \
 ```bash
 # View live logs
 gcloud run services logs tail process-optimization \
-  --project=process-optimization-agent \
+  --project=samantha-493919 \
   --region=us-central1
 
 # Describe the service (URL, env vars, traffic splits)
 gcloud run services describe process-optimization \
-  --project=process-optimization-agent \
+  --project=samantha-493919 \
   --region=us-central1
 
 # List all container images
 gcloud artifacts docker images list \
-  us-central1-docker.pkg.dev/process-optimization-agent/agents \
-  --project=process-optimization-agent
+  us-central1-docker.pkg.dev/samantha-493919/agents \
+  --project=samantha-493919
 ```
 
 ---
@@ -186,7 +191,7 @@ To trigger a build manually:
 
 ```bash
 gcloud builds triggers run process-optimization-deploy \
-  --project=process-optimization-agent \
+  --project=samantha-493919 \
   --region=us-central1 \
   --branch=main
 ```
