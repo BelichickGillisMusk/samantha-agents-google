@@ -152,8 +152,13 @@ floating chat panel:
 
 Three things to know:
 
-- **`allow="microphone"`** is required for the voice button to work inside the
-  iframe. Without it the mic prompt is silently denied.
+- **`allow="microphone"`** is required for the 🎙 voice-**input** (dictation)
+  button to work inside the iframe. Without it the mic prompt is silently denied.
+  Voice **output** (the 🔊 read-aloud button on replies) uses the browser's
+  `speechSynthesis` and needs no permission or iframe attribute. Each agent speaks
+  in a gender-matched voice — women's voices for Samantha/Nora/Sloane/Audra, a
+  man's voice for Vin — falling back to a pitch offset when the browser exposes no
+  distinctly-gendered voice.
 - **CORS is off by default.** The iframe approach above works because the
   PWA's `fetch('/api/chat')` calls are same-origin (the iframe loaded from
   `agents-web-xyz.run.app`, the fetch goes to the same host). If you instead
