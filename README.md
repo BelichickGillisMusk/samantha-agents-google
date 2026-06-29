@@ -15,7 +15,7 @@ All information here is intended for editing and building these projects from **
 | **Sloane** — Content & brand voice | `sloane-agent` | Persona live, deploy pending | [Build Info](projects/sloane/BUILD.md) |
 | **Audra** — Accounting & bookkeeping | `audra-agent` | Persona live, deploy pending | [Build Info](projects/audra/BUILD.md) |
 | **Vin** — Site infra (Cloudflare + GitHub) | `vin-agent` | Persona live, deploy + connectors pending | [Build Info](projects/vin/BUILD.md) |
-| Process-Optimization | `process-optimization-agent` | Active (meta-agent — scaffolds new agents) | [Build Info](projects/process-optimization/BUILD.md) |
+| Process-Optimization | `samantha-493919` (shared) | Active (meta-agent — scaffolds new agents) | [Build Info](projects/process-optimization/BUILD.md) |
 
 **Talk to any of the five right now** (no deploy needed): `./projects/samantha/chat.py --agent <samantha\|nora\|sloane\|audra\|vin>` from the repo root. Same CLI, five personas, one shared Vertex AI project (`samantha-493919`) until per-agent projects are stood up.
 
