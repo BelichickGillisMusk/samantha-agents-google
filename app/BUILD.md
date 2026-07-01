@@ -77,14 +77,14 @@ substitutions:
   _IMAGE: "${IMAGE}"
 YAML
 
-# Simpler one-shot using the cloudbuilders default flow (also fine):
+# Simpler one-shot using the committed app/cloudbuild.yaml (recommended):
 gcloud builds submit . --project=samantha-493919 --region=us-central1 \
   --config=app/cloudbuild.yaml --substitutions=_IMAGE="$IMAGE"
 ```
 
-If you don't want to set up a `cloudbuild.yaml`, the `gcloud builds submit
---tag` shorthand can be used by moving the Dockerfile to repo root first; or
-build locally:
+`app/cloudbuild.yaml` ships in this folder and builds with `-f app/Dockerfile`
+from the repo-root context, so no file moving is needed. To skip Cloud Build
+entirely, build locally instead:
 
 ```bash
 docker build -f app/Dockerfile -t "$IMAGE" .
