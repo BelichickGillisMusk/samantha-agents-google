@@ -35,14 +35,42 @@ The backend reuses `projects/samantha/chat.py` (`AGENTS`, `extract_persona`,
 
 ## Run locally (no deploy)
 
+Two auth options — pick whichever is easier:
+
+**Option A — Google AI Studio API key (`SAMANTHA_APP_KEY`)**
+
+Get a free key at https://aistudio.google.com/apikey and add it to your
+`.env` file:
+
+```dotenv
+SAMANTHA_APP_KEY=AIza...
+```
+
+Then start the app — no `gcloud auth` needed:
+
+```bash
+source .env
+pip install -r app/requirements.txt
+uvicorn app.main:app --host 127.0.0.1 --port 8080 --reload
+```
+
+**Option B — ADC (Application Default Credentials)**
+
 ```bash
 # from repo root
 gcloud auth application-default login            # one-time
 
 pip install -r app/requirements.txt
 uvicorn app.main:app --host 127.0.0.1 --port 8080 --reload
+```
 
-# in another tab — sanity:
+When `SAMANTHA_APP_KEY` is not set the backend falls back to ADC automatically;
+in Cloud Run the runtime service account supplies the credential. When
+`SAMANTHA_APP_KEY` is set it takes precedence and calls
+`generativelanguage.googleapis.com` directly (no ADC or service account required).
+
+```bash
+# sanity checks (same for both auth paths):
 curl -s localhost:8080/api/agents
 curl -s -X POST localhost:8080/api/chat \
   -H 'Content-Type: application/json' \
@@ -51,9 +79,6 @@ curl -s -X POST localhost:8080/api/chat \
 # open the UI:
 open http://127.0.0.1:8080
 ```
-
-The backend uses ADC (`gcloud auth application-default login`) locally; on
-Cloud Run it uses the runtime service account automatically.
 
 ---
 

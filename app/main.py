@@ -3,8 +3,12 @@
 One Cloud Run service that fronts all five agents (Samantha, Nora, Sloane,
 Audra, Vin). Each chat call:
   1. resolves the agent's persona file from projects/<agent>/persona/system_prompt.md
-  2. authenticates to Vertex AI via the Cloud Run runtime service account (ADC)
-  3. POSTs to gemini-2.5-pro:generateContent in samantha-493919/us-central1
+  2. authenticates to Gemini:
+       - SAMANTHA_APP_KEY set → Gemini AI Studio API (generativelanguage.googleapis.com)
+         using the API key directly; no ADC / service account needed.
+       - SAMANTHA_APP_KEY absent → Vertex AI (aiplatform.googleapis.com) via ADC;
+         in Cloud Run the runtime service account supplies the credential automatically.
+  3. POSTs to gemini-2.5-pro:generateContent
   4. returns the model's reply
 
 Static frontend (single-page PWA) lives in app/static/ and is served from /.
@@ -40,6 +44,9 @@ REGION = (
     or "us-central1"
 )
 MODEL = os.environ.get("VERTEX_AI_MODEL", "gemini-2.5-pro")
+# When set, use the Gemini AI Studio API with key-based auth instead of Vertex AI + ADC.
+# In Cloud Run this is mounted from Secret Manager via --set-secrets; locally, set it in .env.
+APP_KEY = os.environ.get("SAMANTHA_APP_KEY", "")
 STATIC_DIR = pathlib.Path(__file__).parent / "static"
 
 # CORS allowlist for cross-origin embeds (e.g. bryanoneillgillis.com). Comma-
@@ -76,13 +83,25 @@ class ChatRequest(BaseModel):
     history: List[Turn] = []
 
 
-def _access_token() -> str:
-    """ADC token. In Cloud Run, the runtime service account supplies it."""
+def _gemini_url() -> str:
+    """Endpoint URL. API-key path uses AI Studio; ADC path uses Vertex AI."""
+    if APP_KEY:
+        return f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
+    return (
+        f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT}"
+        f"/locations/{REGION}/publishers/google/models/{MODEL}:generateContent"
+    )
+
+
+def _gemini_headers() -> dict:
+    """Auth headers. API key takes precedence over ADC."""
+    if APP_KEY:
+        return {"x-goog-api-key": APP_KEY, "Content-Type": "application/json"}
     creds, _ = google.auth.default(
         scopes=["https://www.googleapis.com/auth/cloud-platform"]
     )
     creds.refresh(google.auth.transport.requests.Request())
-    return creds.token
+    return {"Authorization": "Bearer " + creds.token, "Content-Type": "application/json"}
 
 
 @app.get("/api/agents")
@@ -117,17 +136,11 @@ def chat_endpoint(req: ChatRequest) -> dict:
         "contents": contents,
         "generationConfig": {"temperature": 0.4, "maxOutputTokens": 2048},
     }
-    url = (
-        f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT}"
-        f"/locations/{REGION}/publishers/google/models/{MODEL}:generateContent"
-    )
+    url = _gemini_url()
     http_req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {_access_token()}",
-            "Content-Type": "application/json",
-        },
+        headers=_gemini_headers(),
         method="POST",
     )
     try:
