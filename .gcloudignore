@@ -1,0 +1,16 @@
+# Files NOT uploaded when running `gcloud run deploy --source .`.
+# (When this file exists, gcloud uses it instead of .gitignore.)
+.git/
+.github/
+
+# Never upload secrets.
+.env
+.env.*
+
+# Python bytecode.
+**/__pycache__/
+*.pyc
+
+# Samantha local dev harness volumes (large, not needed in the image).
+projects/samantha/ollama/
+projects/samantha/open-webui/
