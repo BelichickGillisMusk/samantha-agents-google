@@ -84,6 +84,28 @@ open http://127.0.0.1:8080
 
 ## Build & deploy
 
+### Easiest — one command (recommended)
+
+From the repo root, this builds **and** deploys in a single step (no image
+variable, no `$(…)`, no separate build). A root `Dockerfile` + `.gcloudignore`
+make `--source .` build the right thing:
+
+```bash
+gcloud run deploy agents-web \
+  --source . \
+  --project samantha-493919 \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --memory 512Mi \
+  --set-env-vars GOOGLE_CLOUD_PROJECT=samantha-493919,VERTEX_AI_MODEL=gemini-2.5-pro
+```
+
+First run prompts once to create an Artifact Registry repo and enable APIs — say
+**Y**. It ends by printing `https://agents-web-<hash>-uc.a.run.app`. (The service
+name `agents-web` is arbitrary; use any name you like — just keep it consistent.)
+
+### Manual build + deploy (two steps)
+
 ```bash
 # from repo root — Dockerfile is at app/Dockerfile but build context is the repo
 IMAGE="us-central1-docker.pkg.dev/samantha-493919/agents/agents-web:$(git rev-parse --short HEAD)"
@@ -102,14 +124,14 @@ substitutions:
   _IMAGE: "${IMAGE}"
 YAML
 
-# Simpler one-shot using the cloudbuilders default flow (also fine):
+# Simpler one-shot using the committed app/cloudbuild.yaml (recommended):
 gcloud builds submit . --project=samantha-493919 --region=us-central1 \
   --config=app/cloudbuild.yaml --substitutions=_IMAGE="$IMAGE"
 ```
 
-If you don't want to set up a `cloudbuild.yaml`, the `gcloud builds submit
---tag` shorthand can be used by moving the Dockerfile to repo root first; or
-build locally:
+`app/cloudbuild.yaml` ships in this folder and builds with `-f app/Dockerfile`
+from the repo-root context, so no file moving is needed. To skip Cloud Build
+entirely, build locally instead:
 
 ```bash
 docker build -f app/Dockerfile -t "$IMAGE" .
